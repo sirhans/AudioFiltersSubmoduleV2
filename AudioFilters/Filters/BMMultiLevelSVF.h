@@ -90,12 +90,111 @@ void BMMultiLevelSVF_processBufferStereo(BMMultiLevelSVF *This, const float* inp
 /*!
  *BMMultiLevelSVF_setLowpass
  */
-void BMMultiLevelSVF_setLowpass(BMMultiLevelSVF *This, double fc, size_t level);
+void BMMultiLevelSVF_setLowpass12dB(BMMultiLevelSVF *This, double fc, size_t level);
 
 /*!
- *BMMultiLevelSVF_setLowpassQ
+ *BMMultiLevelSVF_setLowpass12dBwithQ
  */
-void BMMultiLevelSVF_setLowpassQ(BMMultiLevelSVF *This, double fc, double q, size_t level);
+void BMMultiLevelSVF_setLowpass12dBwithQ(BMMultiLevelSVF *This, double fc, double q, size_t level);
+
+/*!
+ *BMMultiLevelSVF_setLowpass24dB
+ *
+ * 	@abstract This filter requires 2 levels
+ *
+ *	@param This pointer to an initialized struct
+ *	@param fc filter cutoff frequency
+ *	@param levelStart the first level used for this filter
+ *	@param levelEnd the last level used for this filter
+ *
+ */
+void BMMultiLevelSVF_setLowpass24dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd);
+
+/*!
+ *BMMultiLevelSVF_setLowpass36dB
+ *
+ * 	@abstract This filter requires 3 consecutive, contiguous levels
+ *
+ *	@param This pointer to an initialized struct
+ *	@param fc filter cutoff frequency
+ *	@param levelStart the first level used for this filter
+ *	@param levelEnd the last level used for this filter
+ */
+void BMMultiLevelSVF_setLowpass36dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd);
+
+/*!
+ *BMMultiLevelSVF_setLowpass48dB
+ *
+ * 	@abstract This filter requires 4 consecutive, contiguous levels
+ *
+ *	@param This pointer to an initialized struct
+ *	@param fc filter cutoff frequency
+ *	@param levelStart the first level used for this filter
+ *	@param levelEnd the last level used for this filter
+ */
+void BMMultiLevelSVF_setLowpass48dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd);
+
+/*!
+ *BMMultiLevelSVF_setLowpass60dB
+ *
+ * 	@abstract This filter requires 5 consecutive, contiguous levels
+ *
+ *	@param This pointer to an initialized struct
+ *	@param fc filter cutoff frequency
+ *	@param levelStart the first level used for this filter
+ *	@param levelEnd the last level used for this filter
+ */
+void BMMultiLevelSVF_setLowpass60dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd);
+
+/*!
+ *BMMultiLevelSVF_setHighpass24dB
+ *
+ * 	@abstract This filter requires 2 levels
+ *
+ *	@param This pointer to an initialized struct
+ *	@param fc filter cutoff frequency
+ *	@param levelStart the first level used for this filter
+ *	@param levelEnd the last level used for this filter
+ */
+void BMMultiLevelSVF_setHighpass24dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd);
+
+/*!
+ *BMMultiLevelSVF_setHighpass36dB
+ *
+ * 	@abstract This filter requires 3 consecutive, contiguous levels
+ *
+ *	@param This pointer to an initialized struct
+ *	@param fc filter cutoff frequency
+ *	@param levelStart the first level used for this filter
+ *	@param levelEnd the last level used for this filter
+ */
+void BMMultiLevelSVF_setHighpass36dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd);
+
+/*!
+ *BMMultiLevelSVF_setHighpass48dB
+ *
+ * 	@abstract This filter requires 4 consecutive, contiguous levels
+ *
+ *	@param This pointer to an initialized struct
+ *	@param fc filter cutoff frequency
+ *	@param levelStart the first level used for this filter
+ *	@param levelEnd the last level used for this filter
+ */
+void BMMultiLevelSVF_setHighpass48dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd);
+
+/*!
+ *BMMultiLevelSVF_setHighpass60dB
+ *
+ * 	@abstract This filter requires 5 consecutive, contiguous levels
+ *
+ *	@param This pointer to an initialized struct
+ *	@param fc filter cutoff frequency
+ *	@param levelStart the first level used for this filter
+ *	@param levelEnd the last level used for this filter
+ */
+void BMMultiLevelSVF_setHighpass60dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd);
+
+
 
 /*!
  *BMMultiLevelSVF_setBandpass
@@ -105,12 +204,12 @@ void BMMultiLevelSVF_setBandpass(BMMultiLevelSVF *This, double fc, double q, siz
 /*!
  *BMMultiLevelSVF_setHighpass
  */
-void BMMultiLevelSVF_setHighpass(BMMultiLevelSVF *This, double fc, size_t level);
+void BMMultiLevelSVF_setHighpass12dB(BMMultiLevelSVF *This, double fc, size_t level);
 
 /*!
  *BMMultiLevelSVF_setHighpassQ
  */
-void BMMultiLevelSVF_setHighpassQ(BMMultiLevelSVF *This, double fc, double q, size_t level);
+void BMMultiLevelSVF_setHighpass12dBwithQ(BMMultiLevelSVF *This, double fc, double q, size_t level);
 
 /*!
  *BMMultiLevelSVF_setAllpass

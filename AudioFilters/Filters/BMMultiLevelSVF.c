@@ -10,7 +10,8 @@
 #include <assert.h>
 #include "Constants.h"
 
-#define SVF_Param_Count 3
+//#define SVF_PARAM_COUNT 3
+#define SVF_GOLDEN_RATIO (1.0 + sqrt(5.0)) / 2.0
 
 static inline void BMMultiLevelSVF_processBufferAtLevel(BMMultiLevelSVF *This,
                                                         size_t level, size_t channel,
@@ -413,6 +414,9 @@ inline void BMMultiLevelSVF_updateSVFParam(BMMultiLevelSVF *This){
 	}
 }
 
+
+
+
 #pragma mark - Filters
 void BMMultiLevelSVF_setCoefficientsHelper(BMMultiLevelSVF *This, double fc, double Q, size_t level){
 	// This is from the function CalcCoeff2 in https://cytomic.com/files/dsp/SvfLinearTrapezoidalSin.pdf
@@ -431,11 +435,19 @@ void BMMultiLevelSVF_setCoefficientsHelper(BMMultiLevelSVF *This, double fc, dou
 	This->k_pending[level] = (float)k;
 }
 
-void BMMultiLevelSVF_setLowpass(BMMultiLevelSVF *This, double fc, size_t level){
-    BMMultiLevelSVF_setLowpassQ(This, fc, 1./sqrtf(2.), level);
+
+
+
+
+void BMMultiLevelSVF_setLowpass12dB(BMMultiLevelSVF *This, double fc, size_t level){
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, 1./sqrtf(2.), level);
 }
 
-void BMMultiLevelSVF_setLowpassQ(BMMultiLevelSVF *This, double fc, double Q, size_t level){
+
+
+
+
+void BMMultiLevelSVF_setLowpass12dBwithQ(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
     
 	os_unfair_lock_lock(&This->lock);
@@ -447,6 +459,197 @@ void BMMultiLevelSVF_setLowpassQ(BMMultiLevelSVF *This, double fc, double Q, siz
     
     This->shouldUpdateParam = true;
 }
+
+
+
+
+void BMMultiLevelSVF_setLowpass24dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
+	// This filter requires 2 levels. Let's make sure we have exactly 2:
+	assert((int)levelEnd - (int)levelStart == 2);
+	// And make sure the last one doesn't go off the end
+	assert(levelEnd < This->numLevels);
+	
+	// Q values from Mathematica:
+	//   1/Sqrt(2 - Sqrt(2))
+	//   1/Sqrt(2 + Sqrt(2))
+	float Q1 = 1.0 / sqrt(2.0 - M_SQRT2);
+	float Q2 = 1.0 / sqrt(2.0 + M_SQRT2);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q1, levelStart);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q2, levelEnd);
+	
+}
+
+
+
+
+void BMMultiLevelSVF_setLowpass36dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
+	// This filter requires 3 levels. Let's make sure we have exactly 3:
+	assert((int)levelEnd - (int)levelStart == 3);
+	// And make sure the last one doesn't go off the end
+	assert(levelEnd < This->numLevels);
+	
+	// Q values from Mathematica:
+	//   1/Sqrt(2 - Sqrt(3))
+	//   1/Sqrt(2)
+	//   1/Sqrt(2 + Sqrt(3))
+	float Q1 = 1.0 / sqrt(2.0 - sqrt(3));
+	float Q2 = M_SQRT1_2;
+	float Q3 = 1.0 / sqrt(2.0 + sqrt(3));
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q1, levelStart);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q2, levelStart + 1);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q3, levelEnd);
+}
+
+
+
+
+
+void BMMultiLevelSVF_setLowpass48dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
+	// This filter requires 4 levels. Let's make sure we have exactly 4:
+	assert((int)levelEnd - (int)levelStart == 4);
+	// And make sure the last one doesn't go off the end
+	assert(levelEnd < This->numLevels);
+
+	// Q values from Mathematica:
+	//  1/Sqrt(2 - Sqrt(2 + Sqrt(2)))
+	//	1/Sqrt(2 - Sqrt(2 - Sqrt(2)))
+	//  1/Sqrt(2 + Sqrt(2 - Sqrt(2)))
+	//	1/Sqrt(2 + Sqrt(2 + Sqrt(2)))
+	float Q1 = 1.0 / sqrt(2.0 - sqrt(2.0 + M_SQRT2));
+	float Q2 = 1.0 / sqrt(2.0 - sqrt(2.0 - M_SQRT2));
+	float Q3 = 1.0 / sqrt(2.0 + sqrt(2.0 - M_SQRT2));
+	float Q4 = 1.0 / sqrt(2.0 + sqrt(2.0 + M_SQRT2));
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q1, levelStart);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q2, levelStart + 1);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q3, levelStart + 2);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q4, levelEnd);
+}
+
+
+
+
+
+void BMMultiLevelSVF_setLowpass60dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
+	// This filter requires 5 levels. Let's make sure we have exactly 5:
+	assert((int)levelEnd - (int)levelStart == 5);
+	// And make sure the last one doesn't go off the end
+	assert(levelEnd < This->numLevels);
+	
+	// Q values from Mathematica:
+	//  1/Sqrt(2 - Sqrt(2 + GoldenRatio))
+	//	1/Sqrt(2 - Sqrt(3 - GoldenRatio))
+	//	1/Sqrt(2)
+	//	1/Sqrt(2 + Sqrt(3 - GoldenRatio))
+	//	1/Sqrt(2 + Sqrt(2 + GoldenRatio))
+	float Q1 = 1.0 / sqrt(2.0 - sqrt(2.0 + SVF_GOLDEN_RATIO));
+	float Q2 = 1.0 / sqrt(2.0 - sqrt(3.0 - SVF_GOLDEN_RATIO));
+	float Q3 = M_SQRT1_2;
+	float Q4 = 1.0 / sqrt(2.0 + sqrt(3.0 - SVF_GOLDEN_RATIO));
+	float Q5 = 1.0 / sqrt(2.0 + sqrt(2.0 + SVF_GOLDEN_RATIO));
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q1, levelStart);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q2, levelStart + 1);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q3, levelStart + 2);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q4, levelStart + 3);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q5, levelEnd);
+}
+
+
+
+
+
+void BMMultiLevelSVF_setHighpass24dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
+	// This filter requires 2 levels. Let's make sure we have exactly 2:
+	assert((int)levelEnd - (int)levelStart == 2);
+	// And make sure the last one doesn't go off the end
+	assert(levelEnd < This->numLevels);
+	
+	// Q values from Mathematica:
+	//   1/Sqrt(2 - Sqrt(2))
+	//   1/Sqrt(2 + Sqrt(2))
+	float Q1 = 1.0 / sqrt(2.0 - M_SQRT2);
+	float Q2 = 1.0 / sqrt(2.0 + M_SQRT2);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q1, levelStart);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q2, levelEnd);
+	
+}
+
+
+
+
+
+void BMMultiLevelSVF_setHighpass36dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
+	// This filter requires 3 levels. Let's make sure we have exactly 3:
+	assert((int)levelEnd - (int)levelStart == 3);
+	// And make sure the last one doesn't go off the end
+	assert(levelEnd < This->numLevels);
+	
+	// Q values from Mathematica:
+	//   1/Sqrt(2 - Sqrt(3))
+	//   1/Sqrt(2)
+	//   1/Sqrt(2 + Sqrt(3))
+	float Q1 = 1.0 / sqrt(2.0 - sqrt(3));
+	float Q2 = M_SQRT1_2;
+	float Q3 = 1.0 / sqrt(2.0 + sqrt(3));
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q1, levelStart);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q2, levelStart + 1);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q3, levelEnd);
+}
+
+
+
+
+
+void BMMultiLevelSVF_setHighpass48dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
+	// This filter requires 4 levels. Let's make sure we have exactly 4:
+	assert((int)levelEnd - (int)levelStart == 4);
+	// And make sure the last one doesn't go off the end
+	assert(levelEnd < This->numLevels);
+	
+	// Q values from Mathematica:
+	//  1/Sqrt(2 - Sqrt(2 + Sqrt(2)))
+	//	1/Sqrt(2 - Sqrt(2 - Sqrt(2)))
+	//  1/Sqrt(2 + Sqrt(2 - Sqrt(2)))
+	//	1/Sqrt(2 + Sqrt(2 + Sqrt(2)))
+	float Q1 = 1.0 / sqrt(2.0 - sqrt(2.0 + M_SQRT2));
+	float Q2 = 1.0 / sqrt(2.0 - sqrt(2.0 - M_SQRT2));
+	float Q3 = 1.0 / sqrt(2.0 + sqrt(2.0 - M_SQRT2));
+	float Q4 = 1.0 / sqrt(2.0 + sqrt(2.0 + M_SQRT2));
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q1, levelStart);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q2, levelStart + 1);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q3, levelStart + 2);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q4, levelEnd);
+}
+
+
+
+
+
+void BMMultiLevelSVF_setHighpass60dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
+	// This filter requires 5 levels. Let's make sure we have exactly 5:
+	assert((int)levelEnd - (int)levelStart == 5);
+	// And make sure the last one doesn't go off the end
+	assert(levelEnd < This->numLevels);
+	
+	// Q values from Mathematica:
+	//  1/Sqrt(2 - Sqrt(2 + GoldenRatio))
+	//	1/Sqrt(2 - Sqrt(3 - GoldenRatio))
+	//	1/Sqrt(2)
+	//	1/Sqrt(2 + Sqrt(3 - GoldenRatio))
+	//	1/Sqrt(2 + Sqrt(2 + GoldenRatio))
+	float Q1 = 1.0 / sqrt(2.0 - sqrt(2.0 + SVF_GOLDEN_RATIO));
+	float Q2 = 1.0 / sqrt(2.0 - sqrt(3.0 - SVF_GOLDEN_RATIO));
+	float Q3 = M_SQRT1_2;
+	float Q4 = 1.0 / sqrt(2.0 + sqrt(3.0 - SVF_GOLDEN_RATIO));
+	float Q5 = 1.0 / sqrt(2.0 + sqrt(2.0 + SVF_GOLDEN_RATIO));
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q1, levelStart);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q2, levelStart + 1);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q3, levelStart + 2);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q4, levelStart + 3);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, Q5, levelEnd);
+}
+
+
+
 
 void BMMultiLevelSVF_setBandpass(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
@@ -461,11 +664,11 @@ void BMMultiLevelSVF_setBandpass(BMMultiLevelSVF *This, double fc, double Q, siz
     This->shouldUpdateParam = true;
 }
 
-void BMMultiLevelSVF_setHighpass(BMMultiLevelSVF *This, double fc, size_t level){
-    BMMultiLevelSVF_setHighpassQ(This, fc, 1./sqrtf(2.), level);
+void BMMultiLevelSVF_setHighpass12dB(BMMultiLevelSVF *This, double fc, size_t level){
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, 1./sqrtf(2.), level);
 }
 
-void BMMultiLevelSVF_setHighpassQ(BMMultiLevelSVF *This, double fc, double Q, size_t level){
+void BMMultiLevelSVF_setHighpass12dBwithQ(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
     
 	os_unfair_lock_lock(&This->lock);
