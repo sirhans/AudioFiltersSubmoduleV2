@@ -10,6 +10,7 @@
 #define BMExportWavFile_h
 
 #include <stdio.h>
+#include <stdint.h>
 
 typedef struct BMExportWavFile{
     FILE*   file_p;
