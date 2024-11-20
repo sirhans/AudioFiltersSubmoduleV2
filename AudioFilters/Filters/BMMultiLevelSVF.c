@@ -158,7 +158,7 @@ void BMMultiLevelSVF_enableFilterSweep(BMMultiLevelSVF *This, bool sweepOn){
 	This->filterSweep = sweepOn;
 }
 
-void BMMUltiLevelSVF_forceImmediateUpdate(BMMultiLevelSVF *This){
+void BMMultiLevelSVF_forceImmediateUpdate(BMMultiLevelSVF *This){
 	This->updateImmediately = true;
 }
 
