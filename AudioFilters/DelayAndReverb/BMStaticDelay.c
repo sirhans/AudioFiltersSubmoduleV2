@@ -155,7 +155,7 @@ void BMStaticDelay_processBufferStereo(BMStaticDelay *This,
 										   samplesProcessing);
 			
 			// mix the input to one channel, then pan it back to stereo with an LFO
-			BMLFOPan2_processStereo(&This->pan, inL + samplesProcessed, inR + samplesProcessed,
+			BMLFOPan2_processStereoMixdown(&This->pan, inL + samplesProcessed, inR + samplesProcessed,
 									This->mixingBufferL, This->mixingBufferR,
 									samplesProcessing);
 			

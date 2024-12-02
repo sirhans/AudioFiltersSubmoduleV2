@@ -17,7 +17,7 @@
 typedef struct BMLFO {
 	BMQuadratureOscillator osc;
 	BMSmoothValue minValue, scale;
-	float *b1, *b2, lastOutput;
+	float *b1, *b2, *b3, lastOutput;
 } BMLFO;
 
 
@@ -44,6 +44,15 @@ void BMLFO_free(BMLFO *This);
  *BMLFO_process
  */
 void BMLFO_process(BMLFO *This, float *output, size_t numSamples);
+
+
+
+/*!
+ *BMLFO_processQuadrature
+ *
+ * @abstract puts quadrature phase sine and cosine waves in outputL and outputR
+ */
+void BMLFO_processQuadrature(BMLFO *This, float *outputL, float *outputR, size_t numSamples);
 
 
 

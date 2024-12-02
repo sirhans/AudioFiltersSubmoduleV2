@@ -5,9 +5,48 @@
 //  Created by hans anderson on 5/8/24.
 //
 
-#include "BMLFOPan2.h"
 #include <assert.h>
 #include <Accelerate/Accelerate.h>
+#include "BMLFOPan2.h"
+#include "BMUnitConversion.h"
+
+
+
+void BMLFOPan2_processStereoQuadratureDb(BMLFOPan2 *This,
+										 float *inL, float *inR,
+										 float *outL, float *outR,
+										 size_t numSamples){
+	// chunked processing
+	size_t samplesRemaining = numSamples;
+	size_t samplesProcessed = 0;
+	
+	while(samplesRemaining > 0){
+		size_t samplesProcessing = BM_MIN(samplesRemaining, BM_BUFFER_CHUNK_SIZE);
+		
+		// generate gain control signal for mixing to L and R channels
+		BMLFO_processQuadrature(&This->lfo, This->mixControlSignalL, This->mixControlSignalR, samplesProcessing);
+		
+		// convert the gain control signals from decibels to linear gain
+		BMConv_dBToGainV(This->mixControlSignalL, This->mixControlSignalL, samplesProcessing);
+		BMConv_dBToGainV(This->mixControlSignalR, This->mixControlSignalR, samplesProcessing);
+		
+		// mix output to R channel
+		vDSP_vmul(This->buffer, 1,
+				  This->mixControlSignalR, 1,
+				  outR + samplesProcessed, 1,
+				  samplesProcessing);
+		
+		// mix output to L channel
+		vDSP_vmul(This->buffer, 1,
+				  This->mixControlSignalL, 1,
+				  outL + samplesProcessed, 1,
+				  samplesProcessing);
+		
+		samplesProcessed += samplesProcessing;
+		samplesRemaining -= samplesProcessing;
+	}
+}
+
 
 
 
@@ -16,10 +55,13 @@
  *
  * Input is mixed to mono before processing.
  */
-void BMLFOPan2_processStereo(BMLFOPan2 *This,
+void BMLFOPan2_processStereoMixdown(BMLFOPan2 *This,
 								  float *inL, float *inR,
 								  float *outL, float *outR,
 								  size_t numSamples){
+	// This function should not be called if the LFOPan2 struct was initialized to measure depth in decibels
+	assert(!This->depthInDb);
+	
 	// chunked processing
 	size_t samplesRemaining = numSamples;
 	size_t samplesProcessed = 0;
@@ -59,14 +101,9 @@ void BMLFOPan2_processStereo(BMLFOPan2 *This,
 	}
 }
 
-/*!
- *BMLFOPan2_init
- *
- * @param This pointer to a struct
- * @param LFOFreqHz the LFO frequency in Hz
- * @param depth in [0,1]. 0 means always panned center. 1 means full L-R panning
- * @param sampleRate sample rate in Hz
- */
+
+
+
 void BMLFOPan2_init(BMLFOPan2 *This, float LFOFreqHz, float depth, float sampleRate){
 	assert(depth >= 0.0f && depth <= 1.0f);
 
@@ -77,7 +114,46 @@ void BMLFOPan2_init(BMLFOPan2 *This, float LFOFreqHz, float depth, float sampleR
 	This->mixControlSignalL = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
 	This->mixControlSignalR = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
 	This->buffer = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
+	
+	// the standard init function should be used only for the process functions that don't measure depth in decibels
+	This->depthInDb = false;
 }
+
+
+
+
+void BMLFOPan2_initQuadratureDb(BMLFOPan2 *This, float LFOFreqHz, float depthDb, float sampleRate){
+	// since the pan effect is gain-cut only, the depth in decibels must not be positive.
+	assert(depthDb <= 0.0f);
+
+	float min = depthDb;
+	float max = 0.0;
+	BMLFO_init(&This->lfo, LFOFreqHz, min, max, sampleRate);
+	
+	This->mixControlSignalL = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
+	This->mixControlSignalR = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
+	This->buffer = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
+	
+	// this init function should be used only for the process functions that measure depth in decibels
+	This->depthInDb = true;
+}
+
+
+
+
+void BMLFOPan2_setDepthSmoothlyDb(BMLFOPan2 *This, float depthDb){
+	// this function should only be called if This struct was initialized to
+	// operate with the depth measured in decibels
+	assert(This->depthInDb);
+	
+	// since this is a cut-only pan effect, the depth must not be a positive number
+	assert(depthDb <= 0.0f);
+	
+	float min = depthDb;
+	float max = 0.0;
+	BMLFO_setMinMaxSmoothly(&This->lfo, min, max);
+}
+
 
 
 

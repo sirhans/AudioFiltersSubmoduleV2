@@ -19,6 +19,7 @@ void BMLFO_init(BMLFO *This, float frequency, float minVal, float maxVal, float 
 	
 	This->b1 = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
 	This->b2 = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
+	This->b3 = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
 }
 
 
@@ -26,8 +27,10 @@ void BMLFO_init(BMLFO *This, float frequency, float minVal, float maxVal, float 
 void BMLFO_free(BMLFO *This){
 	free(This->b1);
 	free(This->b2);
+	free(This->b3);
 	This->b1 = NULL;
 	This->b2 = NULL;
+	This->b3 = NULL;
 }
 
 
@@ -126,6 +129,42 @@ void BMLFO_process(BMLFO *This, float *output, size_t numSamples){
 	}
 	
 	This->lastOutput = output[numSamples-1];
+}
+
+
+
+void BMLFO_processQuadrature(BMLFO *This, float *outputL, float *outputR, size_t numSamples){
+	size_t samplesRemaining = numSamples;
+	size_t indexShift = 0;
+	
+	// give the buffers nice names
+	float *Lb = This->b1;
+	float *Rb = This->b2;
+	
+	while(samplesRemaining > 0){
+		size_t samplesProcessing = BM_MIN(samplesRemaining, BM_BUFFER_CHUNK_SIZE);
+		
+		// generate sine and cosine waves, output to Lb and Rb
+		BMQuadratureOscillator_process(&This->osc, Lb, Rb, samplesProcessing);
+		
+		// scale the sine and cosine waves (use b3 as temp buffer for the scaling control)
+		BMSmoothValue_process(&This->scale, This->b3, samplesProcessing);
+		vDSP_vmul(Lb, 1, This->b3, 1, Lb, 1, samplesProcessing);
+		vDSP_vmul(Rb, 1, This->b3, 1, Rb, 1, samplesProcessing);
+		
+		// shift the sine and cosine waves, output to outputL and outputR (use b3 for shift control)
+		BMSmoothValue_process(&This->minValue, This->b3, samplesProcessing);
+		vDSP_vadd(Lb, 1, This->b3, 1, outputL + indexShift, 1, samplesProcessing);
+		vDSP_vadd(Rb, 1, This->b3, 1, outputR + indexShift, 1, samplesProcessing);
+		
+		// advance the output index shift
+		indexShift += samplesProcessing;
+		
+		// update the progress count
+		samplesRemaining -= samplesProcessing;
+	}
+	
+	This->lastOutput = outputL[numSamples-1];
 }
 
 

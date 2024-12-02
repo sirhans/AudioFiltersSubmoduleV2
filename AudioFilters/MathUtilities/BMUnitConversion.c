@@ -73,7 +73,8 @@ float BMConv_fftBinsPerPixel(float freqHz,
 
 void BMConv_dBToGainV(const float *input, float *output, size_t numSamples){
     int numSamplesI = (int)numSamples;
-    float magicNumber = 0.16609640474f;
+	// this magic number scales the values so that we can use base 2 exponentiation to do the conversion
+    float magicNumber = 0.16609640474;
     vDSP_vsmul(input, 1, &magicNumber, output, 1, numSamples);
     vvexp2f(output, output, &numSamplesI);
 }
