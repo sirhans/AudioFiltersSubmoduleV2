@@ -158,7 +158,7 @@ void BMMultiLevelSVF_enableFilterSweep(BMMultiLevelSVF *This, bool sweepOn){
 	This->filterSweep = sweepOn;
 }
 
-void BMMUltiLevelSVF_forceImmediateUpdate(BMMultiLevelSVF *This){
+void BMMultiLevelSVF_forceImmediateUpdate(BMMultiLevelSVF *This){
 	This->updateImmediately = true;
 }
 
@@ -465,7 +465,7 @@ void BMMultiLevelSVF_setLowpass12dBwithQ(BMMultiLevelSVF *This, double fc, doubl
 
 void BMMultiLevelSVF_setLowpass24dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
 	// This filter requires 2 levels. Let's make sure we have exactly 2:
-	assert((int)levelEnd - (int)levelStart == 2);
+	assert((int)levelEnd - (int)levelStart == 1);
 	// And make sure the last one doesn't go off the end
 	assert(levelEnd < This->numLevels);
 	
@@ -484,7 +484,7 @@ void BMMultiLevelSVF_setLowpass24dB(BMMultiLevelSVF *This, double fc, size_t lev
 
 void BMMultiLevelSVF_setLowpass36dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
 	// This filter requires 3 levels. Let's make sure we have exactly 3:
-	assert((int)levelEnd - (int)levelStart == 3);
+	assert((int)levelEnd - (int)levelStart == 2);
 	// And make sure the last one doesn't go off the end
 	assert(levelEnd < This->numLevels);
 	
@@ -506,7 +506,7 @@ void BMMultiLevelSVF_setLowpass36dB(BMMultiLevelSVF *This, double fc, size_t lev
 
 void BMMultiLevelSVF_setLowpass48dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
 	// This filter requires 4 levels. Let's make sure we have exactly 4:
-	assert((int)levelEnd - (int)levelStart == 4);
+	assert((int)levelEnd - (int)levelStart == 3);
 	// And make sure the last one doesn't go off the end
 	assert(levelEnd < This->numLevels);
 
@@ -531,7 +531,7 @@ void BMMultiLevelSVF_setLowpass48dB(BMMultiLevelSVF *This, double fc, size_t lev
 
 void BMMultiLevelSVF_setLowpass60dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
 	// This filter requires 5 levels. Let's make sure we have exactly 5:
-	assert((int)levelEnd - (int)levelStart == 5);
+	assert((int)levelEnd - (int)levelStart == 4);
 	// And make sure the last one doesn't go off the end
 	assert(levelEnd < This->numLevels);
 	
@@ -559,7 +559,7 @@ void BMMultiLevelSVF_setLowpass60dB(BMMultiLevelSVF *This, double fc, size_t lev
 
 void BMMultiLevelSVF_setHighpass24dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
 	// This filter requires 2 levels. Let's make sure we have exactly 2:
-	assert((int)levelEnd - (int)levelStart == 2);
+	assert((int)levelEnd - (int)levelStart == 1);
 	// And make sure the last one doesn't go off the end
 	assert(levelEnd < This->numLevels);
 	
@@ -579,7 +579,7 @@ void BMMultiLevelSVF_setHighpass24dB(BMMultiLevelSVF *This, double fc, size_t le
 
 void BMMultiLevelSVF_setHighpass36dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
 	// This filter requires 3 levels. Let's make sure we have exactly 3:
-	assert((int)levelEnd - (int)levelStart == 3);
+	assert((int)levelEnd - (int)levelStart == 2);
 	// And make sure the last one doesn't go off the end
 	assert(levelEnd < This->numLevels);
 	
@@ -601,7 +601,7 @@ void BMMultiLevelSVF_setHighpass36dB(BMMultiLevelSVF *This, double fc, size_t le
 
 void BMMultiLevelSVF_setHighpass48dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
 	// This filter requires 4 levels. Let's make sure we have exactly 4:
-	assert((int)levelEnd - (int)levelStart == 4);
+	assert((int)levelEnd - (int)levelStart == 3);
 	// And make sure the last one doesn't go off the end
 	assert(levelEnd < This->numLevels);
 	
@@ -626,7 +626,7 @@ void BMMultiLevelSVF_setHighpass48dB(BMMultiLevelSVF *This, double fc, size_t le
 
 void BMMultiLevelSVF_setHighpass60dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
 	// This filter requires 5 levels. Let's make sure we have exactly 5:
-	assert((int)levelEnd - (int)levelStart == 5);
+	assert((int)levelEnd - (int)levelStart == 4);
 	// And make sure the last one doesn't go off the end
 	assert(levelEnd < This->numLevels);
 	

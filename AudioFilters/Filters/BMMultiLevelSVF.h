@@ -293,11 +293,11 @@ void BMMultiLevelSVF_copyStateFromBiquadHelper(BMMultiLevelSVF *This);
 
 
 /*!
- *BMMUltiLevelSVF_forceImmediateUpdate
+ *BMMultiLevelSVF_forceImmediateUpdate
  *
  * @abstract call this to force the filter to do the currently queued update immediately even when smooth update is on
  */
-void BMMUltiLevelSVF_forceImmediateUpdate(BMMultiLevelSVF *This);
+void BMMultiLevelSVF_forceImmediateUpdate(BMMultiLevelSVF *This);
 
 
 /*!
