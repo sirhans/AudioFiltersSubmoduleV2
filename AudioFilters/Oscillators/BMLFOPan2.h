@@ -13,10 +13,16 @@
 #include <stdio.h>
 #include "BMLFO.h"
 
+enum panType {
+	PANTYPE_MIXDOWNLINEAR,
+	PANTYPE_QUADRATURE_DB,
+	PANTYPE_CUT_ONLY_OUT_OF_PHASE_DB
+};
+
 typedef struct BMLFOPan2 {
 	BMLFO lfo;
 	float *mixControlSignalL, *mixControlSignalR, *buffer;
-	bool depthInDb;
+	enum panType type;
 } BMLFOPan2;
 
 
@@ -44,6 +50,17 @@ void BMLFOPan2_processStereoQuadratureDb(BMLFOPan2 *This,
 
 
 /*!
+ *BMLFOPan2_processStereoOutOfPhaseCutDb
+ *
+ * This is a stereo in, stereo out LFO pan where the depth of cut is modulated in decibel scale and the gain in the L and R channels are controlled by out of phase sine waves clipped to prevent the gain from going above zero dB. When L is cut then R is unity gain and when R is cut the L is unity gain.
+ */
+void BMLFOPan2_processStereoOutOfPhaseCutDb(BMLFOPan2 *This,
+										 float *inL, float *inR,
+										 float *outL, float *outR,
+											size_t numSamples);
+
+
+/*!
  *BMLFOPan2_init
  *
  * @param This pointer to a struct
@@ -68,12 +85,33 @@ void BMLFOPan2_init(BMLFOPan2 *This, float LFOFreqHz, float depth, float sampleR
 void BMLFOPan2_initQuadratureDb(BMLFOPan2 *This, float LFOFreqHz, float depthDb, float sampleRate);
 
 
+
+
+
+/*!
+ *BMLFOPan2_initOutOfPhaseCutDb
+ *
+ * @abstract This version of the init function is used to set the pan depth in dB scale. The gain of the signal in L and R channels are modulated by a quadrature phase oscillator that controls the gain in decibels. The pan effect is achieved by gain cut only. In other words, the max gain is 0 dB.
+ *
+ * @param This pointer to a struct
+ * @param LFOFreqHz the LFO frequency in Hz
+ * @param depthDb depth of cut in dB. MUST BE A NEGATIVE NUMBER.
+ * @param sampleRate sample rate in Hz
+ */
+void BMLFOPan2_initOutOfPhaseCutDb(BMLFOPan2 *This, float LFOFreqHz, float depthDb, float sampleRate);
+
+
+
+
+
 /*!
  *BMLFOPan2_setDepthSmoothlyDb
  *
  * @abstract This changes the depth of the LFO smoothly to avoid causing a click sound
  */
 void BMLFOPan2_setDepthSmoothlyDb(BMLFOPan2 *This, float depthDb);
+
+
 
 
 
