@@ -53,12 +53,12 @@ void BMLFOPan2_processStereoQuadratureDb(BMLFOPan2 *This,
 
 
 
-void BMLFOPan2_processStereoOutOfPhaseCutDb(BMLFOPan2 *This,
-										 float *inL, float *inR,
-										 float *outL, float *outR,
-										 size_t numSamples){
+void BMLFOPan2_processStereoOutOfPhaseCutDbTriangle(BMLFOPan2 *This,
+													float *inL, float *inR,
+													float *outL, float *outR,
+													size_t numSamples){
 	// make sure this BMLFOPan2 was initialized with the correct type for this process function
-	assert(This->type == PANTYPE_CUT_ONLY_OUT_OF_PHASE_DB);
+	assert(This->type == PANTYPE_TRIANGLE_CUT_ONLY_OUT_OF_PHASE_DB);
 	
 	// chunked processing
 	size_t samplesRemaining = numSamples;
@@ -68,7 +68,7 @@ void BMLFOPan2_processStereoOutOfPhaseCutDb(BMLFOPan2 *This,
 		size_t samplesProcessing = BM_MIN(samplesRemaining, BM_BUFFER_CHUNK_SIZE);
 		
 		// generate gain control signal for mixing the left channel
-		BMLFO_process(&This->lfo, This->mixControlSignalL, samplesProcessing);
+		BMTriangleLFO_process(&This->triangleLfo, This->mixControlSignalL, samplesProcessing);
 		
 		// the gain control signal for the right channel is the opposite of the left
 		vDSP_vneg(This->mixControlSignalL, 1, This->mixControlSignalR, 1, samplesProcessing);
@@ -166,6 +166,7 @@ void BMLFOPan2_init(BMLFOPan2 *This, float LFOFreqHz, float depth, float sampleR
 
 	float min = 0.5f - (0.5f * depth);
 	float max = 0.5f + (0.5f * depth);
+	BMTriangleLFO_init(&This->triangleLfo, LFOFreqHz, min, max, sampleRate);
 	BMLFO_init(&This->lfo, LFOFreqHz, min, max, sampleRate);
 	
 	This->mixControlSignalL = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
@@ -185,6 +186,7 @@ void BMLFOPan2_initQuadratureDb(BMLFOPan2 *This, float LFOFreqHz, float depthDb,
 
 	float min = depthDb;
 	float max = 0.0;
+	BMTriangleLFO_init(&This->triangleLfo, LFOFreqHz, min, max, sampleRate);
 	BMLFO_init(&This->lfo, LFOFreqHz, min, max, sampleRate);
 	
 	This->mixControlSignalL = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
@@ -198,12 +200,13 @@ void BMLFOPan2_initQuadratureDb(BMLFOPan2 *This, float LFOFreqHz, float depthDb,
 
 
 
-void BMLFOPan2_initOutOfPhaseCutDb(BMLFOPan2 *This, float LFOFreqHz, float depthDb, float sampleRate){
+void BMLFOPan2_initOutOfPhaseCutDbTriangle(BMLFOPan2 *This, float LFOFreqHz, float depthDb, float sampleRate){
 	// since the pan effect is gain-cut only, the depth in decibels must not be positive.
 	assert(depthDb <= 0.0f);
 
 	float min = depthDb;
 	float max = -depthDb;
+	BMTriangleLFO_init(&This->triangleLfo, LFOFreqHz, min, max, sampleRate);
 	BMLFO_init(&This->lfo, LFOFreqHz, min, max, sampleRate);
 	
 	This->mixControlSignalL = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
@@ -211,7 +214,7 @@ void BMLFOPan2_initOutOfPhaseCutDb(BMLFOPan2 *This, float LFOFreqHz, float depth
 	This->buffer = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
 	
 	// set the type of panning
-	This->type = PANTYPE_CUT_ONLY_OUT_OF_PHASE_DB;
+	This->type = PANTYPE_TRIANGLE_CUT_ONLY_OUT_OF_PHASE_DB;
 }
 
 
@@ -220,15 +223,16 @@ void BMLFOPan2_initOutOfPhaseCutDb(BMLFOPan2 *This, float LFOFreqHz, float depth
 void BMLFOPan2_setDepthSmoothlyDb(BMLFOPan2 *This, float depthDb){
 	// this function should only be called if This struct was initialized to
 	// operate with the depth measured in decibels
-	assert(This->type == PANTYPE_QUADRATURE_DB || This->type == PANTYPE_CUT_ONLY_OUT_OF_PHASE_DB);
+	assert(This->type == PANTYPE_QUADRATURE_DB || This->type == PANTYPE_TRIANGLE_CUT_ONLY_OUT_OF_PHASE_DB);
 	
 	// since this is a cut-only pan effect, the depth must not be a positive number
 	assert(depthDb <= 0.0f);
 	
 	float min = depthDb;
 	float max = 0.0;
-	if (This->type == PANTYPE_CUT_ONLY_OUT_OF_PHASE_DB) max = -depthDb;
+	if (This->type == PANTYPE_TRIANGLE_CUT_ONLY_OUT_OF_PHASE_DB) max = -depthDb;
 	BMLFO_setMinMaxSmoothly(&This->lfo, min, max);
+	BMTriangleLFO_setMinMaxSmoothly(&This->triangleLfo, min, max);
 }
 
 
@@ -239,6 +243,7 @@ void BMLFOPan2_setDepthSmoothlyDb(BMLFOPan2 *This, float depthDb){
  */
 void BMLFOPan2_free(BMLFOPan2 *This){
 	BMLFO_free(&This->lfo);
+	BMTriangleLFO_free(&This->triangleLfo);
 	
 	free(This->mixControlSignalL);
 	free(This->mixControlSignalR);

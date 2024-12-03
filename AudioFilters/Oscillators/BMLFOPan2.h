@@ -12,15 +12,17 @@
 
 #include <stdio.h>
 #include "BMLFO.h"
+#include "BMTriangleLFO.h"
 
 enum panType {
 	PANTYPE_MIXDOWNLINEAR,
 	PANTYPE_QUADRATURE_DB,
-	PANTYPE_CUT_ONLY_OUT_OF_PHASE_DB
+	PANTYPE_TRIANGLE_CUT_ONLY_OUT_OF_PHASE_DB
 };
 
 typedef struct BMLFOPan2 {
 	BMLFO lfo;
+	BMTriangleLFO triangleLfo;
 	float *mixControlSignalL, *mixControlSignalR, *buffer;
 	enum panType type;
 } BMLFOPan2;
@@ -50,14 +52,14 @@ void BMLFOPan2_processStereoQuadratureDb(BMLFOPan2 *This,
 
 
 /*!
- *BMLFOPan2_processStereoOutOfPhaseCutDb
+ *BMLFOPan2_processStereoOutOfPhaseCutDbTriangle
  *
- * This is a stereo in, stereo out LFO pan where the depth of cut is modulated in decibel scale and the gain in the L and R channels are controlled by out of phase sine waves clipped to prevent the gain from going above zero dB. When L is cut then R is unity gain and when R is cut the L is unity gain.
+ * This is a stereo in, stereo out LFO pan where the depth of cut is modulated in decibel scale and the gain in the L and R channels are controlled by out of phase sine waves clipped to prevent the gain from going above zero dB. When L is cut then R is unity gain and when R is cut the L is unity gain. The LFO for this is a triangle wave, not a sine wave.
  */
-void BMLFOPan2_processStereoOutOfPhaseCutDb(BMLFOPan2 *This,
-										 float *inL, float *inR,
-										 float *outL, float *outR,
-											size_t numSamples);
+void BMLFOPan2_processStereoOutOfPhaseCutDbTriangle(BMLFOPan2 *This,
+													float *inL, float *inR,
+													float *outL, float *outR,
+													size_t numSamples);
 
 
 /*!
@@ -98,7 +100,7 @@ void BMLFOPan2_initQuadratureDb(BMLFOPan2 *This, float LFOFreqHz, float depthDb,
  * @param depthDb depth of cut in dB. MUST BE A NEGATIVE NUMBER.
  * @param sampleRate sample rate in Hz
  */
-void BMLFOPan2_initOutOfPhaseCutDb(BMLFOPan2 *This, float LFOFreqHz, float depthDb, float sampleRate);
+void BMLFOPan2_initOutOfPhaseCutDbTriangle(BMLFOPan2 *This, float LFOFreqHz, float depthDb, float sampleRate);
 
 
 
