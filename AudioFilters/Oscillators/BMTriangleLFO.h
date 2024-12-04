@@ -21,7 +21,7 @@
 #include "BMSmoothValue.h"
 
 typedef struct BMTriangleLFO {
-	float sampleRate, freq, phase, period, min, max;
+	float sampleRate, freq, phase, min, max;
 	BMSmoothValue minValue, scale;
 	float *buffer;
 } BMTriangleLFO;

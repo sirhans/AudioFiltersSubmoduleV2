@@ -59,7 +59,6 @@ void BMTriangleLFO_free(BMTriangleLFO *This){
  */
 void BMTriangleLFO_setFrequency(BMTriangleLFO *This, float fHz){
 	This->freq = fHz;
-	This->period = 1.0 / fHz;
 }
 
 
@@ -182,11 +181,8 @@ void BMTriangleLFO_advance(BMTriangleLFO *This,
 	
 	// compute the value of the triangle wave after advanceing numSamples ahead
 	//
-	// get a shorter name for period
-	float p = This->period;
-	//
 	// do the calculation (based on textbook formula for a triangle wave with period p)
-	*output = (4.0 / p) * fabs(fmod(This->phase - (p * 0.25), p) - (p * 0.5)) - 1.0;
+	*output = 4.0 * fabs(fmod(This->phase + 0.75, 1.0) - 0.5) - 1.0;
 	
 	// get the scale and apply it to the oscillator output.
 	float scale = BMSmoothValue_advance(&This->scale, numSamples);
