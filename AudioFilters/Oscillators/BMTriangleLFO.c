@@ -71,23 +71,23 @@ void BMTriangleLFO_setFrequency(BMTriangleLFO *This, float fHz){
  */
 void BMTriangleLFO_triangleWave(float *phases, float *output, size_t numSamples){
 	// triangle wave prototype tested in Mathematica:
-	//   -1 + 4*Abs[-1/2 + Mod[-1/4 + (t_), 1]]
+	//   -1 + 4*Abs[-1/2 + Mod[3/4 + (t_), 1]]
 	//
 	// written in c form:
-	//   4.0 * fabsf(fmodf(t - 0.25, 1.0) - 0.5) - 1.0
+	//   4.0 * fabsf(fmodf(t + 0.75, 1.0) - 0.5) - 1.0
 	//
 	// below we implement this in a vectorised format
-	float neg1Over4 = -0.25;
-	// t - 0.25
-	vDSP_vsadd(output, 1, &neg1Over4, output, 1, numSamples);
-	// fmod(t - 0.25, 1.0)
+	float threeOverFour = 0.75;
+	// t + 0.75
+	vDSP_vsadd(output, 1, &threeOverFour, output, 1, numSamples);
+	// fmod(t + 0.75, 1.0)
 	for(size_t i=0; i<numSamples; i++) output[i] = fmodf(output[i], 1.0);
-	// (fmodf(t - 0.25, 1.0) - 0.5)
+	// (fmodf(t + 0.75, 1.0) - 0.5)
 	float neg1Over2 = -0.5;
 	vDSP_vsadd(output, 1, &neg1Over2, output, 1, numSamples);
-	// fabsf(fmodf(t - 0.25, 1.0) - 0.5)
+	// fabsf(fmodf(t + 0.75, 1.0) - 0.5)
 	vDSP_vabs(output, 1, output, 1, numSamples);
-	//   4.0 * fabsf(fmodf(t - 0.25, 1.0) - 0.5) - 1.0
+	//   4.0 * fabsf(fmodf(t + 0.75, 1.0) - 0.5) - 1.0
 	float four = 4.0;
 	float negOne = -1.0;
 	vDSP_vsmsa(output, 1, &four, &negOne, output, 1, numSamples);
