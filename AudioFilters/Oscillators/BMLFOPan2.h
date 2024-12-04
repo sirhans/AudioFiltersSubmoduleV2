@@ -22,7 +22,7 @@ enum panType {
 
 typedef struct BMLFOPan2 {
 	BMLFO lfo;
-	BMTriangleLFO triangleLfo;
+	BMTriangleLFO TriangleLFO;
 	float *mixControlSignalL, *mixControlSignalR, *buffer;
 	enum panType type;
 } BMLFOPan2;

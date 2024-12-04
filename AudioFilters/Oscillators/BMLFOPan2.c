@@ -68,7 +68,7 @@ void BMLFOPan2_processStereoOutOfPhaseCutDbTriangle(BMLFOPan2 *This,
 		size_t samplesProcessing = BM_MIN(samplesRemaining, BM_BUFFER_CHUNK_SIZE);
 		
 		// generate gain control signal for mixing the left channel
-		BMTriangleLFO_process(&This->triangleLfo, This->mixControlSignalL, samplesProcessing);
+		BMTriangleLFO_process(&This->TriangleLFO, This->mixControlSignalL, samplesProcessing);
 		
 		// the gain control signal for the right channel is the opposite of the left
 		vDSP_vneg(This->mixControlSignalL, 1, This->mixControlSignalR, 1, samplesProcessing);
@@ -166,7 +166,7 @@ void BMLFOPan2_init(BMLFOPan2 *This, float LFOFreqHz, float depth, float sampleR
 
 	float min = 0.5f - (0.5f * depth);
 	float max = 0.5f + (0.5f * depth);
-	BMTriangleLFO_init(&This->triangleLfo, LFOFreqHz, min, max, sampleRate);
+	BMTriangleLFO_init(&This->TriangleLFO, LFOFreqHz, min, max, sampleRate);
 	BMLFO_init(&This->lfo, LFOFreqHz, min, max, sampleRate);
 	
 	This->mixControlSignalL = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
@@ -186,7 +186,7 @@ void BMLFOPan2_initQuadratureDb(BMLFOPan2 *This, float LFOFreqHz, float depthDb,
 
 	float min = depthDb;
 	float max = 0.0;
-	BMTriangleLFO_init(&This->triangleLfo, LFOFreqHz, min, max, sampleRate);
+	BMTriangleLFO_init(&This->TriangleLFO, LFOFreqHz, min, max, sampleRate);
 	BMLFO_init(&This->lfo, LFOFreqHz, min, max, sampleRate);
 	
 	This->mixControlSignalL = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
@@ -206,7 +206,7 @@ void BMLFOPan2_initOutOfPhaseCutDbTriangle(BMLFOPan2 *This, float LFOFreqHz, flo
 
 	float min = depthDb;
 	float max = -depthDb;
-	BMTriangleLFO_init(&This->triangleLfo, LFOFreqHz, min, max, sampleRate);
+	BMTriangleLFO_init(&This->TriangleLFO, LFOFreqHz, min, max, sampleRate);
 	BMLFO_init(&This->lfo, LFOFreqHz, min, max, sampleRate);
 	
 	This->mixControlSignalL = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE);
@@ -232,7 +232,7 @@ void BMLFOPan2_setDepthSmoothlyDb(BMLFOPan2 *This, float depthDb){
 	float max = 0.0;
 	if (This->type == PANTYPE_TRIANGLE_CUT_ONLY_OUT_OF_PHASE_DB) max = -depthDb;
 	BMLFO_setMinMaxSmoothly(&This->lfo, min, max);
-	BMTriangleLFO_setMinMaxSmoothly(&This->triangleLfo, min, max);
+	BMTriangleLFO_setMinMaxSmoothly(&This->TriangleLFO, min, max);
 }
 
 
@@ -243,7 +243,7 @@ void BMLFOPan2_setDepthSmoothlyDb(BMLFOPan2 *This, float depthDb){
  */
 void BMLFOPan2_free(BMLFOPan2 *This){
 	BMLFO_free(&This->lfo);
-	BMTriangleLFO_free(&This->triangleLfo);
+	BMTriangleLFO_free(&This->TriangleLFO);
 	
 	free(This->mixControlSignalL);
 	free(This->mixControlSignalR);

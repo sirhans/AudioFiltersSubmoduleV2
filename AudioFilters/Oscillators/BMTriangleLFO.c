@@ -10,7 +10,7 @@
 
 #include "BMTriangleLFO.h"
 #include <Accelerate/Accelerate.h>
-#define BMTRIANGLELFO_PARAMETER_UPDATE_TIME_SECONDS 1.0
+#define BMTriangleLFO_PARAMETER_UPDATE_TIME_SECONDS 1.0
 
 
 
@@ -35,8 +35,8 @@ void BMTriangleLFO_init(BMTriangleLFO *This,
 	This->phase = 0.0;
 	This->sampleRate = sampleRate;
 	BMTriangleLFO_setFrequency(This, fHz);
-	BMSmoothValue_init(&This->minValue, BMTRIANGLELFO_PARAMETER_UPDATE_TIME_SECONDS, sampleRate);
-	BMSmoothValue_init(&This->scale, BMTRIANGLELFO_PARAMETER_UPDATE_TIME_SECONDS, sampleRate);
+	BMSmoothValue_init(&This->minValue, BMTriangleLFO_PARAMETER_UPDATE_TIME_SECONDS, sampleRate);
+	BMSmoothValue_init(&This->scale, BMTriangleLFO_PARAMETER_UPDATE_TIME_SECONDS, sampleRate);
 	BMTriangleLFO_setMinMaxImmediately(This, min, max);
 	
 	This->buffer = malloc(sizeof(float) * BM_BUFFER_CHUNK_SIZE);
@@ -64,30 +64,33 @@ void BMTriangleLFO_setFrequency(BMTriangleLFO *This, float fHz){
 
 
 
-void BMTriangleLFO_triangleWave(float *phases, float period, float *output, size_t numSamples){
-	// triangle wave prototype tested in Mathematica (p is the period):
-	//   -1 + (4*Abs[-1/2*p + Mod[-1/4*p + t, p]])/p
+/*!
+ *BMTriangleLFO_triangleWave
+ *
+ * Generate a triangle wave with output in range [-1,1] based on input array of phases in range [0,1]. Phases do not actually need to be clipped to that range because they will be wrapped automatically if they fall outside. However, for better numerical stability, phase values should not be so large that the mod operation results in significant loss of precision.
+ */
+void BMTriangleLFO_triangleWave(float *phases, float *output, size_t numSamples){
+	// triangle wave prototype tested in Mathematica:
+	//   -1 + 4*Abs[-1/2 + Mod[-1/4 + (t_), 1]]
 	//
 	// written in c form:
-	//   (4.0 / p) * fabsf(fmodf(t - (p * 0.25), p) - (p * 0.5)) - 1.0
+	//   4.0 * fabsf(fmodf(t - 0.25, 1.0) - 0.5) - 1.0
 	//
 	// below we implement this in a vectorised format
-	float negPOver4 = - period * 0.25;
-	// t - (p * 0.25)
-	vDSP_vsadd(output, 1, &negPOver4, output, 1, numSamples);
-	// fmod(t - (p * 0.25), p)
-	for(size_t i=0; i<numSamples; i++) output[i] = fmodf(output[i], period);
-	// (fmodf(t - (p * 0.25), p) - (p * 0.5))
-	float negPOver2 = - period * 0.5;
-	vDSP_vsadd(output, 1, &negPOver2, output, 1, numSamples);
-	// fabsf(fmodf(t - (p * 0.25), p) - (p * 0.5))
+	float neg1Over4 = -0.25;
+	// t - 0.25
+	vDSP_vsadd(output, 1, &neg1Over4, output, 1, numSamples);
+	// fmod(t - 0.25, 1.0)
+	for(size_t i=0; i<numSamples; i++) output[i] = fmodf(output[i], 1.0);
+	// (fmodf(t - 0.25, 1.0) - 0.5)
+	float neg1Over2 = -0.5;
+	vDSP_vsadd(output, 1, &neg1Over2, output, 1, numSamples);
+	// fabsf(fmodf(t - 0.25, 1.0) - 0.5)
 	vDSP_vabs(output, 1, output, 1, numSamples);
-	//   (4.0 / p) * fabsf(fmodf(t - (p * 0.25), p) - (p * 0.5))
-	float fourOverP = 4.0 / period;
-	vDSP_vsmul(output, 1, &fourOverP, output, 1, numSamples);
-	// (4.0 / p) * fabsf(fmodf(t - (p * 0.25), p) - (p * 0.5)) - 1.0
+	//   4.0 * fabsf(fmodf(t - 0.25, 1.0) - 0.5) - 1.0
+	float four = 4.0;
 	float negOne = -1.0;
-	vDSP_vsadd(output, 1, &negOne, output, 1, numSamples);
+	vDSP_vsmsa(output, 1, &four, &negOne, output, 1, numSamples);
 }
 
 
@@ -134,7 +137,7 @@ void BMTriangleLFO_process(BMTriangleLFO *This,
 		This->phase = endPhase;
 		
 		// generate the triangle wave in [-1,1]
-		BMTriangleLFO_triangleWave(outputSft, This->period, outputSft, samplesProcessing);
+		BMTriangleLFO_triangleWave(outputSft, outputSft, samplesProcessing);
 		
 		// scale and shift the wave so that the min and max values are correct
 		//
