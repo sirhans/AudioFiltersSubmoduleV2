@@ -25,6 +25,7 @@ void BMCompressor_init(BMCompressor *This, float sampleRate){
     float ratio = 4.0f;
     float attackTime = 0.010;
     float releaseTime = 0.080;
+	float outputGain = 0.0;
     
     BMCompressor_initWithSettings(This,
                                   sampleRate,
@@ -32,7 +33,8 @@ void BMCompressor_init(BMCompressor *This, float sampleRate){
                                   kneeWidth,
                                   ratio,
                                   attackTime,
-                                  releaseTime);
+                                  releaseTime,
+								  outputGain);
 }
 
 
@@ -45,8 +47,9 @@ void BMCompressor_init(BMCompressor *This, float sampleRate){
  * @param ratio            compressor ratio
  * @param attackTime       time from onset of note to 90% compressor gain change
  * @param releaseTime      time from release of note to 90% compressor gain change
+ * @param outputGainInDB   gain boost or cut at output, in dB, also called "make-up gain"
  */
-void BMCompressor_initWithSettings(BMCompressor *This, float sampleRate, float thresholdInDB, float kneeWidthInDB, float ratio, float attackTime, float releaseTime){
+void BMCompressor_initWithSettings(BMCompressor *This, float sampleRate, float thresholdInDB, float kneeWidthInDB, float ratio, float attackTime, float releaseTime, float outputGainInDB){
     
     This->slope = 1.0f - (1.0f / ratio);
     This->thresholdInDB = thresholdInDB;
@@ -58,7 +61,8 @@ void BMCompressor_initWithSettings(BMCompressor *This, float sampleRate, float t
     BMQuadraticThreshold_initLower(&This->quadraticThreshold,
                                    This->thresholdInDB,
                                    This->kneeWidthInDB);
-    
+	BMSmoothGain_init(&This->outputGain, sampleRate);
+	BMSmoothGain_setGainDbInstant(&This->outputGain, outputGainInDB);
     
     //init buffers
     This->buffer1 = malloc(sizeof(float) * BM_BUFFER_CHUNK_SIZE);
@@ -136,6 +140,12 @@ void BMCompressor_ProcessBufferMonoWithSideChain(BMCompressor *This,
 
         // apply the gain adjustment to the audio signal
         vDSP_vmul(buffer1,1,input+samplesProcessed,1,output+samplesProcessed,1,samplesProcessing);
+		
+		// apply the output gain
+		BMSmoothGain_processBufferMono(&This->outputGain,
+									   output+samplesProcessed,
+									   output+samplesProcessed,
+									   samplesProcessing);
         
         // advance pointers to the next chunk
         samplesProcessed += samplesProcessing;
@@ -165,8 +175,8 @@ void BMCompressor_ProcessBufferStereoWithSideChain(BMCompressor *This,
     size_t samplesProcessed = 0;
     size_t samplesProcessing;
     
-    while(samplesProcessed<numSamples){
-        samplesProcessing = MIN(numSamples,BM_BUFFER_CHUNK_SIZE);
+    while(samplesProcessed < numSamples){
+		samplesProcessing = MIN(numSamples - samplesProcessed, BM_BUFFER_CHUNK_SIZE);
         
         // get a shorter name for the buffer
         float* buffer1 = This->buffer1;
@@ -185,7 +195,7 @@ void BMCompressor_ProcessBufferStereoWithSideChain(BMCompressor *This,
         // convert linear gain to decibel scale
         float one = 1.0f;
 		uint32_t use20dBRule = 1;
-        vDSP_vdbcon(buffer1,1,&one,buffer1,1,samplesProcessing,use20dBRule);
+        vDSP_vdbcon(buffer1, 1, &one, buffer1, 1, samplesProcessing, use20dBRule);
         
         // clip values below the threshold with a soft knee
         BMQuadraticThreshold_lowerBuffer(&This->quadraticThreshold, buffer1, This->buffer2, samplesProcessing);
@@ -216,8 +226,16 @@ void BMCompressor_ProcessBufferStereoWithSideChain(BMCompressor *This,
         // apply the gain adjustment to the audio signal
         vDSP_vmul(buffer1,1,inputL+samplesProcessed,1,outputL+samplesProcessed,1,samplesProcessing);
         vDSP_vmul(buffer1,1,inputR+samplesProcessed,1,outputR+samplesProcessed,1,samplesProcessing);
+		
+		// apply the output gain
+		BMSmoothGain_processBuffer(&This->outputGain,
+								   outputL+samplesProcessed,
+								   outputR+samplesProcessed,
+								   outputL+samplesProcessed,
+								   outputR+samplesProcessed,
+								   samplesProcessing);
         
-        // advance pointers to the next chunk
+        // update the number of samples processed before doing the next part of the buffer
         samplesProcessed += samplesProcessing;
     }
     
@@ -268,6 +286,14 @@ void BMCompressor_SetReleaseTime(BMCompressor *This, float releaseTime){
     This->releaseTime = releaseTime;
     BMEnvelopeFollower_setReleaseTime(&This->envelopeFollower, releaseTime);
 }
+
+
+
+void BMCompressor_SetOutputGain(BMCompressor *This, float outputGain){
+	BMSmoothGain_setGainDb(&This->outputGain, outputGain);
+}
+
+
 
 void BMCompressor_SetSampleRate(BMCompressor *This, float sampleRate){
     assert(sampleRate > 0.0f);

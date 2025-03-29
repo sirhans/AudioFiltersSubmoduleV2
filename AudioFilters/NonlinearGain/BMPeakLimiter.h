@@ -13,6 +13,7 @@
 #include "BMShortSimpleDelay.h"
 #include "BMEnvelopeFollower.h"
 #include "Constants.h"
+#include "BMSmoothGain.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,6 +22,7 @@ extern "C" {
 typedef struct BMPeakLimiter {
 	BMShortSimpleDelay delay;
 	BMEnvelopeFollower envelopeFollower;
+	BMSmoothGain outputGain;
 	float sampleRate, lookaheadTime, targetLookaheadTime, thresholdGain;
 	float bufferL [BM_BUFFER_CHUNK_SIZE];
 	float bufferR [BM_BUFFER_CHUNK_SIZE];
@@ -52,6 +54,24 @@ void BMPeakLimiter_free(BMPeakLimiter *This);
  *BMPeakLimiter_setThreshold
  */
 void BMPeakLimiter_setThreshold(BMPeakLimiter *This, float thresholdDb);
+
+
+
+/*!
+ *BMPeakLimiter_setOutputGain
+ *
+ * Smooth gain change. No clicks.
+ */
+void BMPeakLimiter_setOutputGain(BMPeakLimiter *This, float gainDb);
+
+
+
+/*!
+ *BMPeakLimiter_setOutputGainInstant
+ *
+ * Instant gain change. This will cause a click.
+ */
+void BMPeakLimiter_setOutputGainInstant(BMPeakLimiter *This, float gainDb);
 
 
 

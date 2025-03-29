@@ -110,7 +110,7 @@ extern "C" {
         // if we aren't in transition, apply the gain by simple multiplication
         else {
             // if the gain is doing something, multiply
-            if( fabsf(This->gain - 1.0f) > 0.0001){
+            if( fabsf(This->gain - 1.0f) > 0.000001){
                 vDSP_vsmul(inputL, 1, &This->gain, outputL, 1, numSamples);
                 vDSP_vsmul(inputR, 1, &This->gain, outputR, 1, numSamples);
             }
