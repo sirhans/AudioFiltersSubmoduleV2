@@ -328,10 +328,12 @@ inline void BMMultiLevelSVF_processBufferAtLevel(BMMultiLevelSVF *This,
 				float v2 = t2 + *ic2eq;
 				*ic1eq += 2.0f * t1;
 				*ic2eq += 2.0f * t2;
-				float high = v0 - (k[i] * v1) - v2;
-				float band = v1;
-				float low = v2;
-				output[i] = (m0[i] * high) + (m1[i] * band) + (m2[i] * low);
+				if(j==0){ // only output on the first sample of each sample-and-hold section
+					float high = v0 - (k[i] * v1) - v2;
+					float band = v1;
+					float low = v2;
+					output[i] = (m0[i] * high) + (m1[i] * band) + (m2[i] * low);
+				}
 			}
 		}
 	} else {
