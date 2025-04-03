@@ -317,23 +317,24 @@ inline void BMMultiLevelSVF_processBufferAtLevel(BMMultiLevelSVF *This,
 		
 		// process the filter
 		for(size_t i=0; i<numSamples; i++){
-			// we can oversample the filter by repeating the code several times for each sample
+			// we can oversample the filter by looping it several times for each sample
 			for(size_t j=0; j<This->oversampleFactor; j++){
 				// This code is based on the Tick 2 function in this file: https://cytomic.com/files/dsp/SvfLinearTrapezoidalSin.pdf
 				float v0 = input[i];
 				float t0 = v0 - *ic2eq;
 				float t1 = (g0[i] * t0) + (g1[i] * *ic1eq);
 				float t2 = (g2[i] * t0) + (g0[i] * *ic1eq);
-				float v1 = t1 + *ic1eq;
-				float v2 = t2 + *ic2eq;
-				*ic1eq += 2.0f * t1;
-				*ic2eq += 2.0f * t2;
-				if(j==0){ // only output on the first sample of each sample-and-hold section
+				// only calculate the output on the first sample of each sample-and-hold upsampling section
+				if(j==0){
+					float v1 = t1 + *ic1eq;
+					float v2 = t2 + *ic2eq;
 					float high = v0 - (k[i] * v1) - v2;
 					float band = v1;
 					float low = v2;
 					output[i] = (m0[i] * high) + (m1[i] * band) + (m2[i] * low);
 				}
+				*ic1eq += 2.0f * t1;
+				*ic2eq += 2.0f * t2;
 			}
 		}
 	} else {
@@ -355,14 +356,17 @@ inline void BMMultiLevelSVF_processBufferAtLevel(BMMultiLevelSVF *This,
 				float t0 = v0 - *ic2eq;
 				float t1 = (g0 * t0) + (g1 * *ic1eq);
 				float t2 = (g2 * t0) + (g0 * *ic1eq);
-				float v1 = t1 + *ic1eq;
-				float v2 = t2 + *ic2eq;
+				// only calculate the output on the first sample of each sample-and-hold upsampling section
+				if(j==0){
+					float v1 = t1 + *ic1eq;
+					float v2 = t2 + *ic2eq;
+					float high = v0 - (k * v1) - v2;
+					float band = v1;
+					float low = v2;
+					output[i] = (m0 * high) + (m1 * band) + (m2 * low);
+				}
 				*ic1eq += 2.0f * t1;
 				*ic2eq += 2.0f * t2;
-				float high = v0 - (k * v1) - v2;
-				float band = v1;
-				float low = v2;
-				output[i] = (m0 * high) + (m1 * band) + (m2 * low);
 			}
 		}
 	}
