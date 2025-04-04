@@ -27,7 +27,7 @@ static inline void BMMultiLevelSVF_updateSVFParam(BMMultiLevelSVF *This);
 
 void BMMultiLevelSVF_init(BMMultiLevelSVF *This,
 						  size_t numLevels,
-						  float sampleRate,
+						  float inputOutputSampleRate,
 						  size_t oversampleFactor,
 						  bool isStereo){
 	
@@ -37,7 +37,7 @@ void BMMultiLevelSVF_init(BMMultiLevelSVF *This,
 	
 	assert(oversampleFactor >= 1);
 	This->oversampleFactor = oversampleFactor;
-	This->sampleRate = sampleRate;
+	This->internalSampleRate = inputOutputSampleRate * oversampleFactor;
 	This->numChannels = isStereo? 2 : 1;
 	This->numLevels = numLevels;
 	This->filterSweep = false;
@@ -439,7 +439,7 @@ inline void BMMultiLevelSVF_updateSVFParam(BMMultiLevelSVF *This){
 #pragma mark - Filters
 void BMMultiLevelSVF_setCoefficientsHelper(BMMultiLevelSVF *This, double fc, double Q, size_t level){
 	// This is from the function CalcCoeff2 in https://cytomic.com/files/dsp/SvfLinearTrapezoidalSin.pdf
-	double w = fc / This->sampleRate;
+	double w = fc / This->internalSampleRate;
     double k = 1.0 / Q;
 	double s1 = sin(M_PI * w);
 	double s2 = sin(2.0 * M_PI * w);
@@ -495,7 +495,6 @@ void BMMultiLevelSVF_setLowpass24dB(BMMultiLevelSVF *This, double fc, size_t lev
 	float Q2 = 1.0 / sqrt(2.0 + M_SQRT2);
 	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q1, levelStart);
 	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q2, levelEnd);
-	
 }
 
 
