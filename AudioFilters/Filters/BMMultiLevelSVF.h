@@ -54,7 +54,7 @@ typedef struct BMMultiLevelSVF{
     size_t numLevels;
     size_t numChannels;
 	size_t oversampleFactor;
-    double internalSampleRate;
+    double sampleRate;
     bool shouldUpdateParam, updateImmediately, needsClearStateVariables;
 	bool filterSweep;
 	os_unfair_lock lock;
@@ -75,14 +75,12 @@ typedef struct BMMultiLevelSVF{
  *
  * @param This pointer to a BMMultilevelSVF struct
  * @param numLevels the number of second order filters required
- * @param inputOutputSampleRate audio sample rate (before oversampling)
- * @param oversampleFactor must be >=1; 1 means no oversampling.
+ * @param sampleRate audio sample rate
  * @param isStereo set true for stereo processing
  */
 void BMMultiLevelSVF_init(BMMultiLevelSVF *This,
 						  size_t numLevels,
-						  float inputOutputSampleRate,
-						  size_t oversampleFactor,
+						  float sampleRate,
 						  bool isStereo);
 
 

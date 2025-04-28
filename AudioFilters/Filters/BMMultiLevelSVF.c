@@ -27,17 +27,16 @@ static inline void BMMultiLevelSVF_updateSVFParam(BMMultiLevelSVF *This);
 
 void BMMultiLevelSVF_init(BMMultiLevelSVF *This,
 						  size_t numLevels,
-						  float inputOutputSampleRate,
-						  size_t oversampleFactor,
+						  float sampleRate,
 						  bool isStereo){
 	
 	// init the biquad helper. This allows us to set biquad filters using the
 	// functions in BMMultiLevelBiquad and copy them into the SVF.
 //	BMMultiLevelBiquad_init(&This->biquadHelper, numLevels, sampleRate, isStereo, false, false);
 	
-	assert(oversampleFactor >= 1);
-	This->oversampleFactor = oversampleFactor;
-	This->internalSampleRate = inputOutputSampleRate * oversampleFactor;
+//	assert(oversampleFactor >= 1);
+//	This->oversampleFactor = oversampleFactor;
+	This->sampleRate = sampleRate;
 	This->numChannels = isStereo? 2 : 1;
 	This->numLevels = numLevels;
 	This->filterSweep = false;
@@ -317,25 +316,20 @@ inline void BMMultiLevelSVF_processBufferAtLevel(BMMultiLevelSVF *This,
 		
 		// process the filter
 		for(size_t i=0; i<numSamples; i++){
-			// we can oversample the filter by looping it several times for each sample
-			for(size_t j=0; j<This->oversampleFactor; j++){
-				// This code is based on the Tick 2 function in this file: https://cytomic.com/files/dsp/SvfLinearTrapezoidalSin.pdf
-				float v0 = input[i];
-				float t0 = v0 - *ic2eq;
-				float t1 = (g0[i] * t0) + (g1[i] * *ic1eq);
-				float t2 = (g2[i] * t0) + (g0[i] * *ic1eq);
-				// only calculate the output on the first sample of each sample-and-hold upsampling section
-				if(j==0){
-					float v1 = t1 + *ic1eq;
-					float v2 = t2 + *ic2eq;
-					float high = v0 - (k[i] * v1) - v2;
-					float band = v1;
-					float low = v2;
-					output[i] = (m0[i] * high) + (m1[i] * band) + (m2[i] * low);
-				}
-				*ic1eq += 2.0f * t1;
-				*ic2eq += 2.0f * t2;
-			}
+			// This code is based on the Tick 2 function in this file: https://cytomic.com/files/dsp/SvfLinearTrapezoidalSin.pdf
+			float v0 = input[i];
+			float t0 = v0 - *ic2eq;
+			float t1 = (g0[i] * t0) + (g1[i] * *ic1eq);
+			float t2 = (g2[i] * t0) + (g0[i] * *ic1eq);
+			
+			float v1 = t1 + *ic1eq;
+			float v2 = t2 + *ic2eq;
+			float high = v0 - (k[i] * v1) - v2;
+			float band = v1;
+			float low = v2;
+			output[i] = (m0[i] * high) + (m1[i] * band) + (m2[i] * low);
+			*ic1eq += 2.0f * t1;
+			*ic2eq += 2.0f * t2;
 		}
 	} else {
 		BMMultiLevelSVF_stageTwoParameterUpdate(This, level);
@@ -349,25 +343,19 @@ inline void BMMultiLevelSVF_processBufferAtLevel(BMMultiLevelSVF *This,
 		float k  = This->k[level];
 		
 		for(size_t i=0; i<numSamples; i++){
-			// we can oversample the filter by repeating the code several times for each sample
-			for(size_t j=0; j<This->oversampleFactor; j++){
-				// This code is based on the Tick 2 function in this file: https://cytomic.com/files/dsp/SvfLinearTrapezoidalSin.pdf
-				float v0 = input[i];
-				float t0 = v0 - *ic2eq;
-				float t1 = (g0 * t0) + (g1 * *ic1eq);
-				float t2 = (g2 * t0) + (g0 * *ic1eq);
-				// only calculate the output on the first sample of each sample-and-hold upsampling section
-				if(j==0){
-					float v1 = t1 + *ic1eq;
-					float v2 = t2 + *ic2eq;
-					float high = v0 - (k * v1) - v2;
-					float band = v1;
-					float low = v2;
-					output[i] = (m0 * high) + (m1 * band) + (m2 * low);
-				}
-				*ic1eq += 2.0f * t1;
-				*ic2eq += 2.0f * t2;
-			}
+			// This code is based on the Tick 2 function in this file: https://cytomic.com/files/dsp/SvfLinearTrapezoidalSin.pdf
+			float v0 = input[i];
+			float t0 = v0 - *ic2eq;
+			float t1 = (g0 * t0) + (g1 * *ic1eq);
+			float t2 = (g2 * t0) + (g0 * *ic1eq);
+			float v1 = t1 + *ic1eq;
+			float v2 = t2 + *ic2eq;
+			float high = v0 - (k * v1) - v2;
+			float band = v1;
+			float low = v2;
+			output[i] = (m0 * high) + (m1 * band) + (m2 * low);
+			*ic1eq += 2.0f * t1;
+			*ic2eq += 2.0f * t2;
 		}
 	}
 }
@@ -439,7 +427,7 @@ inline void BMMultiLevelSVF_updateSVFParam(BMMultiLevelSVF *This){
 #pragma mark - Filters
 void BMMultiLevelSVF_setCoefficientsHelper(BMMultiLevelSVF *This, double fc, double Q, size_t level){
 	// This is from the function CalcCoeff2 in https://cytomic.com/files/dsp/SvfLinearTrapezoidalSin.pdf
-	double w = fc / This->internalSampleRate;
+	double w = fc / This->sampleRate;
     double k = 1.0 / Q;
 	double s1 = sin(M_PI * w);
 	double s2 = sin(2.0 * M_PI * w);
