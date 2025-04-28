@@ -48,10 +48,10 @@ void BMCompressor_initWithSettings(BMCompressor *This, float sampleRate, float t
  * @code result[i] = -1.0f * (X[i] >= lowerLimit && X[i] <= upperLimit);
  * @warning no warnings
  */
-void BMCompressor_ProcessBufferMono(BMCompressor *This, const float* input, float* output, float* minGainDb, size_t numSamples);
+void BMCompressor_processBufferMono(BMCompressor *This, const float* input, float* output, float* minGainDb, size_t numSamples);
 
 
-void BMCompressor_ProcessBufferMonoWithSideChain(BMCompressor *This,
+void BMCompressor_processBufferMonoWithSideChain(BMCompressor *This,
 												 const float *input,
 												 const float *scInput,
 												 float* output,
@@ -62,17 +62,17 @@ void BMCompressor_ProcessBufferMonoWithSideChain(BMCompressor *This,
 /*!
  *BMCompressor_ProcessBufferStereo
  */
-void BMCompressor_ProcessBufferStereo(BMCompressor *This, float* inputL, float* inputR, float* outputL, float* outputR, float* minGainDb, size_t numSamples);
+void BMCompressor_processBufferStereo(BMCompressor *This, float* inputL, float* inputR, float* outputL, float* outputR, float* minGainDb, size_t numSamples);
 
 
-void BMCompressor_ProcessBufferStereoWithSideChain(BMCompressor *This,
+void BMCompressor_processBufferStereoWithSideChain(BMCompressor *This,
                                                    float* inputL, float* inputR,
                                                    float* scInputL, float* scInputR,
                                                    float* outputL, float* outputR,
                                                    float* minGainDb, size_t numSamples);
 
-void BMCompressor_SetThresholdInDB(BMCompressor *This, float threshold);
-void BMCompressor_SetRatio(BMCompressor *This, float ratio);
+void BMCompressor_setThresholdInDB(BMCompressor *This, float threshold);
+void BMCompressor_setRatio(BMCompressor *This, float ratio);
 
 /*!
  * BMCompressor_SetAttackTime
@@ -82,7 +82,7 @@ void BMCompressor_SetRatio(BMCompressor *This, float ratio);
  * @param This pointer to an initialised compressor struct
  * @param attackTime time in seconds
  */
-void BMCompressor_SetAttackTime(BMCompressor *This, float attackTime);
+void BMCompressor_setAttackTime(BMCompressor *This, float attackTime);
 
 /*!
  * BMCompressor_SetReleaseTime
@@ -92,11 +92,11 @@ void BMCompressor_SetAttackTime(BMCompressor *This, float attackTime);
  * @param This pointer to an initialised compressor struct
  * @param releaseTime time in seconds
  */
-void BMCompressor_SetReleaseTime(BMCompressor *This, float releaseTime);
+void BMCompressor_setReleaseTime(BMCompressor *This, float releaseTime);
 
-void BMCompressor_SetSampleRate(BMCompressor *This, float sampleRate);
+void BMCompressor_setSampleRate(BMCompressor *This, float sampleRate);
 
-void BMCompressor_SetKneeWidthInDB(BMCompressor *This, float kneeWidth);
+void BMCompressor_setKneeWidthInDB(BMCompressor *This, float kneeWidth);
 
 /*!
  *BMCompressor_SetOutputGain
@@ -106,9 +106,9 @@ void BMCompressor_SetKneeWidthInDB(BMCompressor *This, float kneeWidth);
  * @param This pointer to an initialized struct
  * @param outputGain output gain in decibels, also called make-up gain
  */
-void BMCompressor_SetOutputGain(BMCompressor *This, float outputGain);
+void BMCompressor_setOutputGain(BMCompressor *This, float outputGain);
 
-void BMCompressor_Free(BMCompressor *This);
+void BMCompressor_free(BMCompressor *This);
 
 #ifdef __cplusplus
 }

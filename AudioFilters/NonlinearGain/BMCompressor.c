@@ -39,7 +39,7 @@ void BMCompressor_init(BMCompressor *This, float sampleRate){
 
 
 /*!
- * BMCompressor_Init
+ * BMCompressor_initWithSettings
  *
  * @param sampleRate       audio system sampling rate
  * @param thresholdInDB    above this threshold, we start compressing
@@ -73,7 +73,7 @@ void BMCompressor_initWithSettings(BMCompressor *This, float sampleRate, float t
 /*
  * Free memory used by temp buffers
  */
-void BMCompressor_Free(BMCompressor *This){
+void BMCompressor_free(BMCompressor *This){
     free(This->buffer1);
     This->buffer1 = NULL;
     free(This->buffer2);
@@ -83,7 +83,7 @@ void BMCompressor_Free(BMCompressor *This){
 
 
 
-void BMCompressor_ProcessBufferMonoWithSideChain(BMCompressor *This,
+void BMCompressor_processBufferMonoWithSideChain(BMCompressor *This,
 												 const float *input,
 												 const float *scInput,
 												 float* output,
@@ -155,14 +155,14 @@ void BMCompressor_ProcessBufferMonoWithSideChain(BMCompressor *This,
 }
 
 
-void BMCompressor_ProcessBufferMono(BMCompressor *This, const float* input, float* output, float* minGainDb, size_t numSamples){
-	BMCompressor_ProcessBufferMonoWithSideChain(This, input, input, output, minGainDb, numSamples);
+void BMCompressor_processBufferMono(BMCompressor *This, const float* input, float* output, float* minGainDb, size_t numSamples){
+	BMCompressor_processBufferMonoWithSideChain(This, input, input, output, minGainDb, numSamples);
 }
 
 
 
 
-void BMCompressor_ProcessBufferStereoWithSideChain(BMCompressor *This,
+void BMCompressor_processBufferStereoWithSideChain(BMCompressor *This,
                                       float* inputL, float* inputR,
                                        float* scInputL, float* scInputR,
                                       float* outputL, float* outputR,
@@ -242,11 +242,11 @@ void BMCompressor_ProcessBufferStereoWithSideChain(BMCompressor *This,
     *minGainDb = minGainWholeBuffer;
 }
 
-void BMCompressor_ProcessBufferStereo(BMCompressor *This,
+void BMCompressor_processBufferStereo(BMCompressor *This,
                                         float* inputL, float* inputR,
                                         float* outputL, float* outputR,
                                         float* minGainDb, size_t numSamples){
-    BMCompressor_ProcessBufferStereoWithSideChain(This, inputL, inputR, inputL, inputR, outputL, outputR, minGainDb, numSamples);
+    BMCompressor_processBufferStereoWithSideChain(This, inputL, inputR, inputL, inputR, outputL, outputR, minGainDb, numSamples);
 }
 
 void updateThreshold(BMCompressor *This){
@@ -255,32 +255,32 @@ void updateThreshold(BMCompressor *This){
                                    This->kneeWidthInDB);
 }
 
-void BMCompressor_SetThresholdInDB(BMCompressor *This, float threshold){
+void BMCompressor_setThresholdInDB(BMCompressor *This, float threshold){
     This->thresholdInDB = threshold;
     updateThreshold(This);
 }
 
-void BMCompressor_SetKneeWidthInDB(BMCompressor *This, float knee){
+void BMCompressor_setKneeWidthInDB(BMCompressor *This, float knee){
     assert(knee > 0.0f);
     
     This->kneeWidthInDB = knee;
     updateThreshold(This);
 }
 
-void BMCompressor_SetRatio(BMCompressor *This, float ratio){
+void BMCompressor_setRatio(BMCompressor *This, float ratio){
     assert(ratio > 0.0);
     
     This->slope = 1.0f - (1.0f / ratio);
 }
 
-void BMCompressor_SetAttackTime(BMCompressor *This, float attackTime){
+void BMCompressor_setAttackTime(BMCompressor *This, float attackTime){
     assert(attackTime >= 0.0f);
     
     This->attackTime = attackTime;
     BMEnvelopeFollower_setAttackTime(&This->envelopeFollower, attackTime);
 }
 
-void BMCompressor_SetReleaseTime(BMCompressor *This, float releaseTime){
+void BMCompressor_setReleaseTime(BMCompressor *This, float releaseTime){
     assert(releaseTime > 0.0f);
     
     This->releaseTime = releaseTime;
@@ -289,13 +289,13 @@ void BMCompressor_SetReleaseTime(BMCompressor *This, float releaseTime){
 
 
 
-void BMCompressor_SetOutputGain(BMCompressor *This, float outputGain){
+void BMCompressor_setOutputGain(BMCompressor *This, float outputGain){
 	BMSmoothGain_setGainDb(&This->outputGain, outputGain);
 }
 
 
 
-void BMCompressor_SetSampleRate(BMCompressor *This, float sampleRate){
+void BMCompressor_setSampleRate(BMCompressor *This, float sampleRate){
     assert(sampleRate > 0.0f);
     
 	BMEnvelopeFollower_free(&This->envelopeFollower);
