@@ -1133,6 +1133,34 @@ void BMMultiLevelBiquad_setLowPassQ12db(BMMultiLevelBiquad *This, double fc,doub
     BMMultiLevelBiquad_queueUpdate(This);
 }
 
+
+
+void BMMultiLevelBiquad_setLowpass18db(BMMultiLevelBiquad *This,
+									   double fc,
+									   size_t firstLevel){
+	// We need two biquad levels for this filter. Make sure we have space.
+	assert(firstLevel + 1 < This->numLevels);
+	
+	// The third-order Butterworth polynomial is (s + 1)(s^2 + s + 1).
+	// Therefore a third-order Butterworth filter can be factored into
+	// a first-order filter followed by a second-order filter with Q=1.
+	//
+	// Reasoning:
+	// 1. (s + 1) is the first-order Butterworth polynomial.
+	// 2. The transfer function of an analog lowpass filter prototype
+	//    with quality factor Q is 1 / (s^2 + s/Q + 1)
+	// 3. (s^2 + s + 1) corresponds to a lowpass filter with Q = 1.
+	
+	// Set the first level to be the 1st order Butterworth lowpass
+	BMMultiLevelBiquad_setLowPass6db(This, fc, firstLevel);
+	
+	// Set the second level to be the 2nd order lowpass with Q = 1
+	double Q = 1.0;
+	BMMultiLevelBiquad_setLowPassQ12db(This, fc, Q, firstLevel + 1);
+}
+
+
+
 void BMMultiLevelBiquad_setHighPass12db(BMMultiLevelBiquad *This, double fc,size_t level){
     assert(level < This->numLevels);
     
@@ -1224,6 +1252,37 @@ void BMMultiLevelBiquad_setHighPassQ12db(BMMultiLevelBiquad *This, double fc,dou
     
     BMMultiLevelBiquad_queueUpdate(This);
 }
+
+
+
+
+
+void BMMultiLevelBiquad_setHighpass18db(BMMultiLevelBiquad *This,
+									    double fc,
+									    size_t firstLevel){
+	// We need two biquad levels for this filter. Make sure we have space.
+	assert(firstLevel + 1 < This->numLevels);
+	
+	// The third-order Butterworth polynomial is (s + 1)(s^2 + s + 1).
+	// Therefore a third-order Butterworth filter can be factored into
+	// a first-order filter followed by a second-order filter with Q=1.
+	//
+	// Reasoning:
+	// 1. (s + 1) is the first-order Butterworth polynomial.
+	// 2. The transfer function of an analog lowpass filter prototype
+	//    with quality factor Q is 1 / (s^2 + s/Q + 1)
+	// 3. (s^2 + s + 1) corresponds to a lowpass filter with Q = 1.
+	
+	// Set the first level to be the 1st order Butterworth highpass
+	BMMultiLevelBiquad_setHighPass6db(This, fc, firstLevel);
+	
+	// Set the second level to be the 2nd order highpass with Q = 1
+	double Q = 1.0;
+	BMMultiLevelBiquad_setHighPassQ12db(This, fc, Q, firstLevel + 1);
+}
+
+
+
 
 
 void BMMultiLevelBiquad_setLinkwitzRileyLP(BMMultiLevelBiquad *This, double fc, size_t level){
