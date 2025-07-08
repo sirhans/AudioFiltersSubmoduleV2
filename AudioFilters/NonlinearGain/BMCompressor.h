@@ -17,6 +17,7 @@
 #include "BMMultiLevelBiquad.h"
 #include "BMEnvelopeFollower.h"
 #include "BMQuadraticThreshold.h"
+#include "BMSmoothGain.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,12 +27,13 @@ typedef struct{
     float thresholdInDB, kneeWidthInDB, releaseTime, attackTime,slope;
     BMEnvelopeFollower envelopeFollower;
     BMQuadraticThreshold quadraticThreshold;
+	BMSmoothGain outputGain;
     float *buffer1, *buffer2;
 } BMCompressor;
 
-void BMCompressor_init(BMCompressor* compressor, float sampleRate);
+void BMCompressor_init(BMCompressor *This, float sampleRate);
 
-void BMCompressor_initWithSettings(BMCompressor* compressor, float sampleRate, float thresholdInDB, float kneeWidthInDB, float ratio, float attackTime, float releaseTime);
+void BMCompressor_initWithSettings(BMCompressor *This, float sampleRate, float thresholdInDB, float kneeWidthInDB, float ratio, float attackTime, float releaseTime, float outputGainInDB);
 
 /*!
  * BMCompressor_ProcessBufferMono
@@ -46,10 +48,10 @@ void BMCompressor_initWithSettings(BMCompressor* compressor, float sampleRate, f
  * @code result[i] = -1.0f * (X[i] >= lowerLimit && X[i] <= upperLimit);
  * @warning no warnings
  */
-void BMCompressor_ProcessBufferMono(BMCompressor *This, const float* input, float* output, float* minGainDb, size_t numSamples);
+void BMCompressor_processBufferMono(BMCompressor *This, const float* input, float* output, float* minGainDb, size_t numSamples);
 
 
-void BMCompressor_ProcessBufferMonoWithSideChain(BMCompressor *This,
+void BMCompressor_processBufferMonoWithSideChain(BMCompressor *This,
 												 const float *input,
 												 const float *scInput,
 												 float* output,
@@ -57,22 +59,56 @@ void BMCompressor_ProcessBufferMonoWithSideChain(BMCompressor *This,
 												 size_t numSamples);
 
 
+/*!
+ *BMCompressor_ProcessBufferStereo
+ */
+void BMCompressor_processBufferStereo(BMCompressor *This, float* inputL, float* inputR, float* outputL, float* outputR, float* minGainDb, size_t numSamples);
 
-void BMCompressor_ProcessBufferStereo(BMCompressor* compressor, float* inputL, float* inputR, float* outputL, float* outputR, float* minGainDb, size_t frameCount);
-void BMCompressor_ProcessBufferStereoWithSideChain(BMCompressor *This,
+
+void BMCompressor_processBufferStereoWithSideChain(BMCompressor *This,
                                                    float* inputL, float* inputR,
                                                    float* scInputL, float* scInputR,
                                                    float* outputL, float* outputR,
                                                    float* minGainDb, size_t numSamples);
 
-void BMCompressor_SetThresholdInDB(BMCompressor* compressor, float threshold);
-void BMCompressor_SetRatio(BMCompressor* compressor, float ratio);
-void BMCompressor_SetAttackTime(BMCompressor* compressor, float attackTime);
-void BMCompressor_SetReleaseTime(BMCompressor* compressor, float releaseTime);
-void BMCompressor_SetSampleRate(BMCompressor* compressor, float sampleRate);
-void BMCompressor_SetKneeWidthInDB(BMCompressor* compressor, float kneeWidth);
+void BMCompressor_setThresholdInDB(BMCompressor *This, float threshold);
+void BMCompressor_setRatio(BMCompressor *This, float ratio);
 
-void BMCompressor_Free(BMCompressor *This);
+/*!
+ * BMCompressor_SetAttackTime
+ *
+ * Set attack time in units of seconds
+ *
+ * @param This pointer to an initialised compressor struct
+ * @param attackTime time in seconds
+ */
+void BMCompressor_setAttackTime(BMCompressor *This, float attackTime);
+
+/*!
+ * BMCompressor_SetReleaseTime
+ *
+ * Set release time in units of seconds
+ *
+ * @param This pointer to an initialised compressor struct
+ * @param releaseTime time in seconds
+ */
+void BMCompressor_setReleaseTime(BMCompressor *This, float releaseTime);
+
+void BMCompressor_setSampleRate(BMCompressor *This, float sampleRate);
+
+void BMCompressor_setKneeWidthInDB(BMCompressor *This, float kneeWidth);
+
+/*!
+ *BMCompressor_SetOutputGain
+ *
+ * Set the output gain in decibels. (0 means no gain change)
+ *
+ * @param This pointer to an initialized struct
+ * @param outputGain output gain in decibels, also called make-up gain
+ */
+void BMCompressor_setOutputGain(BMCompressor *This, float outputGain);
+
+void BMCompressor_free(BMCompressor *This);
 
 #ifdef __cplusplus
 }

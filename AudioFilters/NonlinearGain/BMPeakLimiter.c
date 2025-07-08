@@ -19,34 +19,12 @@
 #define BM_PEAK_LIMITER_THRESHOLD_GAIN_NO_REALTIME BM_DB_TO_GAIN(-2.0f)
 
 
-
-void BMPeakLimiter_init(BMPeakLimiter *This, bool stereo, float sampleRate){
-    This->sampleRate = sampleRate;
-    This->lookaheadTime = This->targetLookaheadTime = BM_PEAK_LIMITER_LOOKAHEAD_TIME_DV;
-    
-    // init the envelope follower
-    BMEnvelopeFollower_initWithCustomNumStages(&This->envelopeFollower, 3, 3, sampleRate);
-    BMEnvelopeFollower_setAttackTime(&This->envelopeFollower, This->lookaheadTime * BM_PEAK_LIMITER_ATTACK_LOOKAHEAD_RATIO);
-    BMEnvelopeFollower_setReleaseTime(&This->envelopeFollower, BM_PEAK_LIMITER_RELEASE_TIME_DV);
-    
-    // init the delay
-    size_t numChannels = (stereo == true) ? 2 : 1;
-    size_t delayInSamples = This->lookaheadTime * sampleRate;
-    BMShortSimpleDelay_init(&This->delay, numChannels, delayInSamples);
-    
-    // set the threshold
-    This->thresholdGain = BM_PEAK_LIMITER_THRESHOLD_GAIN_DV;
-    
-    // not limiting yet on startup
-    This->isLimiting = false;
-}
-
-
-
-
-void BMPeakLimiter_initNoRealtime(BMPeakLimiter *This, bool stereo, float sampleRate){
+void BMPeakLimiter_initAdvanced(BMPeakLimiter *This,
+								bool stereo,
+								float lookAheadTime,
+								float sampleRate){
 	This->sampleRate = sampleRate;
-	This->lookaheadTime = This->targetLookaheadTime = BM_PEAK_LIMITER_LOOKAHEAD_TIME_NO_REALTIME;
+	This->lookaheadTime = This->targetLookaheadTime = lookAheadTime;
 	
 	// init the envelope follower
 	BMEnvelopeFollower_initWithCustomNumStages(&This->envelopeFollower, 3, 3, sampleRate);
@@ -59,13 +37,75 @@ void BMPeakLimiter_initNoRealtime(BMPeakLimiter *This, bool stereo, float sample
 	BMShortSimpleDelay_init(&This->delay, numChannels, delayInSamples);
 	
 	// set the threshold
-	This->thresholdGain = BM_PEAK_LIMITER_THRESHOLD_GAIN_NO_REALTIME;
+	This->thresholdGain = BM_PEAK_LIMITER_THRESHOLD_GAIN_DV;
 	
 	// not limiting yet on startup
 	This->isLimiting = false;
 	
-	// don't clear buffers on startup
-	This->needsClearBuffers = false;
+	// set the output gain to do nothing
+	float outputGain = 0.0;
+	BMSmoothGain_init(&This->outputGain, sampleRate);
+	BMSmoothGain_setGainDbInstant(&This->outputGain, outputGain);
+}
+
+
+void BMPeakLimiter_init(BMPeakLimiter *This, bool stereo, float sampleRate){
+	BMPeakLimiter_initAdvanced(This,
+							   stereo,
+							   BM_PEAK_LIMITER_LOOKAHEAD_TIME_DV,
+							   sampleRate);
+//    This->sampleRate = sampleRate;
+//    This->lookaheadTime = This->targetLookaheadTime = BM_PEAK_LIMITER_LOOKAHEAD_TIME_DV;
+//    
+//    // init the envelope follower
+//    BMEnvelopeFollower_initWithCustomNumStages(&This->envelopeFollower, 3, 3, sampleRate);
+//    BMEnvelopeFollower_setAttackTime(&This->envelopeFollower, This->lookaheadTime * BM_PEAK_LIMITER_ATTACK_LOOKAHEAD_RATIO);
+//    BMEnvelopeFollower_setReleaseTime(&This->envelopeFollower, BM_PEAK_LIMITER_RELEASE_TIME_DV);
+//    
+//    // init the delay
+//    size_t numChannels = (stereo == true) ? 2 : 1;
+//    size_t delayInSamples = This->lookaheadTime * sampleRate;
+//    BMShortSimpleDelay_init(&This->delay, numChannels, delayInSamples);
+//    
+//    // set the threshold
+//    This->thresholdGain = BM_PEAK_LIMITER_THRESHOLD_GAIN_DV;
+//    
+//    // not limiting yet on startup
+//    This->isLimiting = false;
+//	
+//	// set the output gain to do nothing
+//	BMSmoothGain_init(&This->outputGain, sampleRate);
+}
+
+
+
+
+void BMPeakLimiter_initNoRealtime(BMPeakLimiter *This, bool stereo, float sampleRate){
+	BMPeakLimiter_initAdvanced(This,
+							   stereo,
+							   BM_PEAK_LIMITER_LOOKAHEAD_TIME_NO_REALTIME,
+							   sampleRate);
+//	This->sampleRate = sampleRate;
+//	This->lookaheadTime = This->targetLookaheadTime = BM_PEAK_LIMITER_LOOKAHEAD_TIME_NO_REALTIME;
+//	
+//	// init the envelope follower
+//	BMEnvelopeFollower_initWithCustomNumStages(&This->envelopeFollower, 3, 3, sampleRate);
+//	BMEnvelopeFollower_setAttackTime(&This->envelopeFollower, This->lookaheadTime * BM_PEAK_LIMITER_ATTACK_LOOKAHEAD_RATIO);
+//	BMEnvelopeFollower_setReleaseTime(&This->envelopeFollower, BM_PEAK_LIMITER_RELEASE_TIME_DV);
+//	
+//	// init the delay
+//	size_t numChannels = (stereo == true) ? 2 : 1;
+//	size_t delayInSamples = This->lookaheadTime * sampleRate;
+//	BMShortSimpleDelay_init(&This->delay, numChannels, delayInSamples);
+//	
+//	// set the threshold
+//	This->thresholdGain = BM_PEAK_LIMITER_THRESHOLD_GAIN_NO_REALTIME;
+//	
+//	// not limiting yet on startup
+//	This->isLimiting = false;
+//	
+//	// don't clear buffers on startup
+//	This->needsClearBuffers = false;
 }
 
 
@@ -78,6 +118,16 @@ void BMPeakLimiter_free(BMPeakLimiter *This){
 }
 
 
+
+void BMPeakLimiter_setOutputGain(BMPeakLimiter *This, float gainDb){
+	BMSmoothGain_setGainDb(&This->outputGain, gainDb);
+}
+
+
+
+void BMPeakLimiter_setOutputGainInstant(BMPeakLimiter *This, float gainDb){
+	BMSmoothGain_setGainDbInstant(&This->outputGain, gainDb);
+}
 
 
 
@@ -173,6 +223,11 @@ void BMPeakLimiter_processStereo(BMPeakLimiter *This,
         // multiply the delayed inputs by the control signal and write to the output
         vDSP_vmul(This->bufferL,1,This->controlSignal,1,outL+samplesProcessed,1,samplesProcessing);
         vDSP_vmul(This->bufferR,1,This->controlSignal,1,outR+samplesProcessed,1,samplesProcessing);
+		
+		BMSmoothGain_processBuffer(&This->outputGain,
+								   outL+samplesProcessed, outR+samplesProcessed,
+								   outL+samplesProcessed, outR+samplesProcessed,
+								   samplesProcessing);
         
         samplesProcessed += samplesProcessing;
     }
@@ -232,6 +287,11 @@ void BMPeakLimiter_processMono(BMPeakLimiter *This,
         
         // multiply the delayed input by the control signal and write to the output
         vDSP_vmul(This->bufferL,1,This->controlSignal,1,output+samplesProcessed,1,samplesProcessing);
+		
+		BMSmoothGain_processBufferMono(&This->outputGain,
+									   output+samplesProcessed,
+									   output+samplesProcessed,
+									   samplesProcessing);
         
         samplesProcessed += samplesProcessing;
     }

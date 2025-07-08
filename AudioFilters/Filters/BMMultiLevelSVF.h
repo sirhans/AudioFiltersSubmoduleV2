@@ -53,18 +53,38 @@ typedef struct BMMultiLevelSVF{
 	
     size_t numLevels;
     size_t numChannels;
+	size_t oversampleFactor;
     double sampleRate;
     bool shouldUpdateParam, updateImmediately, needsClearStateVariables;
 	bool filterSweep;
 	os_unfair_lock lock;
-	BMMultiLevelBiquad biquadHelper; // we have this so that we can reuse some functions such as the ones for plotting transfer functions
+//	BMMultiLevelBiquad biquadHelper; // we have this so that we can reuse some functions such as the ones for plotting transfer functions
 }BMMultiLevelSVF;
+
+
+
 
 /*!
  *BMMultiLevelSVF_init
+ *
+ * This function does simple oversampling by processing each sample of input
+ * several times while writing the output only once. This type of
+ * oversampling does nothing to improve the audio quality but it is helpful for
+ * preventing the warping of the filter frequency response curves that occurs
+ * near the Nyquist frequency as a result of the bilinear transform.
+ *
+ * @param This pointer to a BMMultilevelSVF struct
+ * @param numLevels the number of second order filters required
+ * @param sampleRate audio sample rate
+ * @param isStereo set true for stereo processing
  */
-void BMMultiLevelSVF_init(BMMultiLevelSVF *This, size_t numLevels,float sampleRate,
-                          bool isStereo);
+void BMMultiLevelSVF_init(BMMultiLevelSVF *This,
+						  size_t numLevels,
+						  float sampleRate,
+						  bool isStereo);
+
+
+
 /*!
  *BMMultiLevelSVF_free
  */
@@ -289,7 +309,7 @@ void BMMultiLevelSVF_enableFilterSweep(BMMultiLevelSVF *This, bool sweepOn);
  * with the same transfer function.
  *
  */
-void BMMultiLevelSVF_copyStateFromBiquadHelper(BMMultiLevelSVF *This);
+//void BMMultiLevelSVF_copyStateFromBiquadHelper(BMMultiLevelSVF *This);
 
 
 /*!
