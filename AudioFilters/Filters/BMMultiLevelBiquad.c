@@ -169,7 +169,7 @@ void BMMultiLevelBiquad_processBufferMono(BMMultiLevelBiquad *This, const float*
 
 
 // Find out if the OS supports vDSP_biquadm updates in realtime
-bool BMMultiLevelBiquad_OSSupportsRealtimeUpdate(){
+bool BMMultiLevelBiquad_OSSupportsRealtimeUpdate(void){
     
     bool OSSupportsRealtimeUpdate = false;
     

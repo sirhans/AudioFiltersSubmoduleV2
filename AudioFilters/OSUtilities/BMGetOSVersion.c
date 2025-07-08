@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-bool BM_isMacOS(){
+bool BM_isMacOS(void){
     #if TARGET_OS_MAC
         #if !(TARGET_OS_IOS || TARGET_OS_WATCH || TARGET_OS_TV)
             return true;
@@ -26,7 +26,7 @@ bool BM_isMacOS(){
     return false;
 }
 
-bool BM_isiOS(){
+bool BM_isiOS(void){
     #if TARGET_OS_IOS
     return true;
     #else
@@ -34,7 +34,7 @@ bool BM_isiOS(){
     #endif
 }
 
-int BM_getOSMajorBuildNumber(){
+int BM_getOSMajorBuildNumber(void){
     int ctlCmd[2];
     // the info we will be requesting from sysctl is in the kernel category
     ctlCmd[0] = CTL_KERN;
