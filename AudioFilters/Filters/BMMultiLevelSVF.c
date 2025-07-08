@@ -453,6 +453,33 @@ void BMMultiLevelSVF_setLowpass12dB(BMMultiLevelSVF *This, double fc, size_t lev
 
 
 
+//void BMMultiLevelSVF_setLowpass18dB(BMMultiLevelSVF *This, double fc, size_t levelStart, size_t levelEnd){
+//	// This filter requires 2 levels. Let's make sure we have exactly 2:
+//	assert((int)levelEnd - (int)levelStart == 1);
+//	// And make sure the last one doesn't go off the end
+//	assert(levelEnd < This->numLevels);
+//	
+//	// The third-order Butterworth polynomial is (s + 1)(s^2 + s + 1).
+//	// Therefore a third-order Butterworth filter can be factored into
+//	// a first-order filter followed by a second-order filter with Q=1.
+//	//
+//	// Reasoning:
+//	// 1. (s + 1) is the first-order Butterworth polynomial.
+//	// 2. The transfer function of an analog lowpass filter prototype
+//	//    with quality factor Q is 1 / (s^2 + s/Q + 1)
+//	// 3. (s^2 + s + 1) corresponds to a lowpass filter with Q = 1.
+//	
+//	// Set the first level to be the 1st order Butterworth lowpass
+//	BMMultiLevelSVF_setLowPass6db(This, fc, levelStart);
+//	
+//	// Set the second level to be the 2nd order lowpass with Q = 1
+//	double Q = 1.0;
+//	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, Q, levelStart + 1);
+//}
+
+
+
+
 
 void BMMultiLevelSVF_setLowpass12dBwithQ(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
