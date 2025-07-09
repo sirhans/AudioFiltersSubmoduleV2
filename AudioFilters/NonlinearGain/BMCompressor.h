@@ -36,19 +36,22 @@ void BMCompressor_init(BMCompressor *This, float sampleRate);
 void BMCompressor_initWithSettings(BMCompressor *This, float sampleRate, float thresholdInDB, float kneeWidthInDB, float ratio, float attackTime, float releaseTime, float outputGainInDB);
 
 /*!
- * BMCompressor_ProcessBufferMono
+ *BMCompressor_ProcessBufferMono
+ *
  * @param This         pointer to a compressor struct
  * @param input        input array of length "length"
  * @param output       output array of length "length"
  * @param minGainDb    the lowest gain setting the compressor reached while processing the buffer
  * @param numSamples   length of arrays
- * @brief apply dynamic range compression to input; result in output (MONO)
- * @notes result[i] is 1.0 where X[i] is within limits, 0.0 otherwise
- * @discussion returns floating point output for use in vectorised code without conditional branching
+ * @brief Apply dynamic range compression to input; result in output (MONO)
+ * @notes result[i] is 1.0 where X[i] is within limits, 0.0 otherwise. Returns floating point output for use in vectorised code without conditional branching
  * @code result[i] = -1.0f * (X[i] >= lowerLimit && X[i] <= upperLimit);
- * @warning no warnings
  */
-void BMCompressor_processBufferMono(BMCompressor *This, const float* input, float* output, float* minGainDb, size_t numSamples);
+void BMCompressor_processBufferMono(BMCompressor *This,
+									const float* input,
+									float* output,
+									float* minGainDb,
+									size_t numSamples);
 
 
 void BMCompressor_processBufferMonoWithSideChain(BMCompressor *This,
