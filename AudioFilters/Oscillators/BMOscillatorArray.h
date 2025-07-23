@@ -24,17 +24,17 @@ extern "C" {
     
     typedef struct BMOscillatorArray {
         // arrays of matrix coefficients
-        float* m11;
-        float* m12;
-        float* m21;
-        float* m22;
+        double* m11;
+        double* m12;
+		double* m21;
+		double* m22;
         
         // temp storage array
-        float* temp;
+		double* temp;
 
         // arrays of latent and active energy stores
-        float* r;
-        float* q;
+		double* r;
+		double* q;
         
         size_t length;
     } BMOscillatorArray;
@@ -53,10 +53,10 @@ extern "C" {
      * ALL ARRAYS MUST HAVE AT LEAST length ELEMENTS
      */
     void BMOscillatorArray_init(BMOscillatorArray *This,
-                                float* magnitude,
-                                float* phase,
-                                float* frequency,
-                                float  sampleRate,
+								double* magnitude,
+								double* phase,
+								double* frequency,
+								double  sampleRate,
                                 size_t length);
     
 
@@ -66,7 +66,7 @@ extern "C" {
     /*
      * free up memory used by the struct
      */
-    void BMOscillatorArray_destroy(BMOscillatorArray *This);
+    void BMOscillatorArray_free(BMOscillatorArray *This);
     
     
     
@@ -74,16 +74,17 @@ extern "C" {
     
     
     
-    /*
+    /*!
+	 *BMOscillatorArray_processSample
+	 *
      * Generate numSamples of oscillation into the array r.  Continues smoothly
      * from the previous function call.
      *
-     * @param r          an array for output
-     * @param numSamples length of r
+     * @param output output is written here
      *
      */
     void BMOscillatorArray_processSample(BMOscillatorArray *This,
-                                              float* output);
+										 double* output);
     
     
 #ifdef __cplusplus

@@ -8,6 +8,7 @@
 
 #include <math.h>
 #include <Accelerate/Accelerate.h>
+#include "BMUnitConversion.h"
 
 #define BM_DB_TO_GAIN(db) pow(10.0,db/20.0)
 #define BM_GAIN_TO_DB(gain) log10f(gain)*20.0
@@ -79,4 +80,33 @@ void BMConv_dBToGainV(const float *input, float *output, size_t numSamples){
     vvexp2f(output, output, &numSamplesI);
 }
 
-#include "BMUnitConversion.h"
+
+
+/*!
+ *BMLerp
+ * Linear interpolation between min and max
+ *
+ * @param min minimum boundary
+ * @param max maximum boundary
+ * @param fraction interpolation fraction between min and max
+ */
+float BMLerp(float min, float max, float fraction){
+	return min + (max - min)*fraction;
+}
+
+
+/*!
+ *BMLogInterp
+ *
+ * Interpolate between min and max in log scale
+ *
+ * @param min minimum boundary
+ * @param max maximum boundary
+ * @param fraction if this is 0 then output is min; if 1 then max; if 0.5 then output is half way between min and max on a logarithmic scale.
+ */
+float BMLogInterp(float min, float max, float fraction){
+	float logMin = log2f(min);
+	float logMax = log2f(max);
+	float logInterp = BMLerp(logMin, logMax, fraction);
+	return powf(2.0, logInterp);
+}

@@ -8,6 +8,8 @@
 //  for any purpose, without restrictions.
 //
 
+#include <math.h>
+
 #ifndef Constants_h
 #define Constants_h
 
