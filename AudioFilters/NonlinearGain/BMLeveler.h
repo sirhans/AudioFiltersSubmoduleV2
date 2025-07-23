@@ -20,7 +20,7 @@
 typedef struct BMLeveler {
 	float targetOutputDb, ratio, gradient, maxGainDb, speedSeconds, thresholdDb, sampleRate;
 	float *controlSignalBuffer;
-	BMEnvelopeFollower envelopeFollowerL, envelopeFollowerR;
+	BMEnvelopeFollower envelopeFollowerL1, envelopeFollowerL2, envelopeFollowerR1, envelopeFollowerR2;
 } BMLeveler;
 
 

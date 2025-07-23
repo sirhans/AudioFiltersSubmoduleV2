@@ -551,6 +551,7 @@ void BMEnvelopeFollower_setReleaseTime(BMEnvelopeFollower *This, float releaseTi
 
 
 
+
 void BMEnvelopeFollower_processBuffer(BMEnvelopeFollower *This, const float* input, float* output, size_t numSamples){
     
     // process all the release filters in series

@@ -110,6 +110,7 @@ void BMEnvelopeFollower_setAttackTime(BMEnvelopeFollower *This, float attackTime
  */
 void BMEnvelopeFollower_setReleaseTime(BMEnvelopeFollower *This, float releaseTimeSeconds);
 
+
 /*!
  * BMAttackFilter_init
  */
