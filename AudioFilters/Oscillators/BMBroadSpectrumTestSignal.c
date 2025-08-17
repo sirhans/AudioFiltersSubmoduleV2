@@ -8,7 +8,7 @@
 
 #include "BMBroadSpectrumTestSignal.h"
 #include "BMUnitConversion.h"
-#include "stdlib.h"
+#include <stdlib.h>
 #include <Accelerate/Accelerate.h>
 #include "Constants.h"
 
@@ -17,6 +17,7 @@ void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 									float minFrequency,
 									float maxFrequency,
 									size_t numOscillators,
+									bool randomPhase,
 									float sampleRate){
 	This->outputBuffer = malloc(sizeof(double)*BM_BUFFER_CHUNK_SIZE);
 	
@@ -30,6 +31,17 @@ void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 	
 	// set all the phases to 0
 	vDSP_vclrD(phases, 1, numOscillators);
+	
+	// if the calling function wants random phase, randomise them
+	if(randomPhase){
+		for(size_t i=0; i<numOscillators; i++){
+			uint32_t randInt = arc4random();
+			
+			phases[i] = (double)((long double)randInt / (long double)INT_MAX);
+			
+			phases[i] *= 2.0 * M_PI;
+		}
+	}
 	
 	// set the frequencies
 	frequencies[0] = minFrequency;

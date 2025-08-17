@@ -10,6 +10,7 @@
 #define BMBroadSpectrumTestSignal_h
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "BMOscillatorArray.h"
 
 
@@ -29,6 +30,7 @@ void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 									float minFrequency,
 									float maxFrequency,
 									size_t numOscillators,
+									bool randomPhase,
 									float sampleRate);
 
 
