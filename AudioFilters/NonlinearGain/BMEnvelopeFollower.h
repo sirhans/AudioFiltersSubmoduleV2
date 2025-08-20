@@ -80,6 +80,18 @@ void BMEnvelopeFollower_processBuffer(BMEnvelopeFollower *This,
                                       float* output,
                                       size_t numSamples);
 
+
+/*!
+ * BMEnvelopeFollower_processBufferRMS>
+ *
+ * This version of the process function does attack first, then release. The result is more like an RMS power than a peak-level-based envelope, in the sense that it doesn't rise to the very top of short transient peaks. 
+ */
+void BMEnvelopeFollower_processBufferRMS(BMEnvelopeFollower *This,
+										 const float* input,
+									     float* output,
+										size_t numSamples);
+
+
 /*!
  * BMEnvelopeFollower_init
  */
