@@ -1729,6 +1729,338 @@ void BMMultiLevelBiquad_setHighOrderBWLP(BMMultiLevelBiquad *This, double fc, si
 }
 
 
+bool BMMLBQ_isEven(size_t x){
+	return x % 2 == 0;
+}
+
+
+
+/*BMMultiLevelBiquad_setLS2OSection
+ *
+ * set up a second-order section of a low-shelf filter of arbitrary order
+ */
+void BMMultiLevelBiquad_setLS2OSection(BMMultiLevelBiquad *This,
+									   double fc,
+									   double gain_v,
+									   size_t order,
+									   size_t section,
+									   size_t level){
+	assert(level < This->numLevels);
+	
+	double M = order;
+	double m = section;
+	double g = gain_v;
+	double B = fc;
+	double K = tan(M_PI * B / This->sampleRate);
+	
+	// Mathematica prototype for second-order shelf denominator coefficients:
+	// {
+	// 	 1 + Power(K,2) - 2*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
+	//  -2 + 2*Power(K,2),
+	//   1 + Power(K,2) + 2*K*Sin(((-1 + 2*m)*Pi)/(2.*M)))
+	// }
+	double a0 = 1.0 + pow(K,2.0) - 2.0 * K * sin(((-1.0 + 2.0*m)*M_PI)/(2.0*M));
+	double a1 = -2.0 + 2.0 * pow(K,2.0);
+	double a2 = 1.0 + pow(K,2.0) + 2.0 * K * sin(((-1.0 + 2.0*m)*M_PI)/(2.0*M));
+	
+	// Mathematica:
+	// {
+	//   1 + Power(g,2/M)*Power(K,2) - 2*Power(g,1/M)*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
+	//  -2 + 2*Power(g,2/M)*Power(K,2),
+	//   1 + Power(g,2/M)*Power(K,2) + 2*Power(g,1/M)*K*Sin(((-1 + 2*m)*Pi)/(2.*M))
+	// }
+	double b0 = 1.0 + pow(g, 2.0/M) * pow(K, 2.0) - 2.0 * pow(g, 1.0/M) * K * sin(((-1.0 + 2.0 * m) * M_PI) / (2.0 * M));
+	double b1 = -2.0 + 2.0 * pow(g, 2.0/M) * pow(K, 2.0);
+	double b2 = 1.0 + pow(g, 2.0/M) * pow(K, 2.0) + 2.0 * pow(g, 1.0/M) * K * sin(((-1.0 + 2.0 * m) * M_PI) / (2.0 * M));
+	
+	// normalize so a0 = 1.0;
+	a1 /= a0;
+	a2 /= a0;
+	b0 /= a0;
+	b1 /= a0;
+	b2 /= a0;
+	a0 = 1.0;
+	
+	// for each channel
+	for(size_t i=0; i < This->numChannels; i++){
+		
+		// get pointers to the filter coefficients for this channel
+		double* b0p = This->coefficients_d + level*This->numChannels*5 + i*5;
+		double* b1p = b0p + 1;
+		double* b2p = b1p + 1;
+		double* a1p = b2p + 1;
+		double* a2p = a1p + 1;
+		
+		// set the coefficients as calculated above
+		*b0p = b0;
+		*b1p = b1;
+		*b2p = b2;
+		*a1p = a1;
+		*a2p = a2;
+	}
+	
+	BMMultiLevelBiquad_queueUpdate(This);
+}
+
+
+
+
+/*BMMultiLevelBiquad_setLS1OSection
+ *
+ * set up the first-order section of a low-shelf filter of odd order
+ */
+void BMMultiLevelBiquad_setLS1OSection(BMMultiLevelBiquad *This,
+									   double fc,
+									   double gain_v,
+									   size_t order,
+									   size_t level){
+	assert(level < This->numLevels);
+	
+	double M = order;
+	double g = gain_v;
+	double B = fc;
+	double K = tan(M_PI * B / This->sampleRate);
+	
+	// Mathematica prototype for second-order shelf denominator coefficients:
+	// {
+	// 	-1 + K,
+	//   1 + K,
+	//   0
+	// }
+	double a0 = -1.0 + K;
+	double a1 =  1.0 + K;
+	double a2 =  0.0;
+	
+	// Mathematica:
+	// {
+	//   -1 + Power(g,1/M)*K,
+	//    1 + Power(g,1/M)*K,
+	//    0
+	// }
+	double b0 = -1.0 + pow(g, 1.0/M) * K;
+	double b1 =  1.0 + pow(g, 1.0/M) * K;
+	double b2 =  0.0;
+	
+	// normalize so a0 = 1.0;
+	a1 /= a0;
+	a2 /= a0;
+	b0 /= a0;
+	b1 /= a0;
+	b2 /= a0;
+	a0 = 1.0;
+	
+	// for each channel
+	for(size_t i=0; i < This->numChannels; i++){
+		
+		// get pointers to the filter coefficients for this channel
+		double* b0p = This->coefficients_d + level*This->numChannels*5 + i*5;
+		double* b1p = b0p + 1;
+		double* b2p = b1p + 1;
+		double* a1p = b2p + 1;
+		double* a2p = a1p + 1;
+		
+		// set the coefficients as calculated above
+		*b0p = b0;
+		*b1p = b1;
+		*b2p = b2;
+		*a1p = a1;
+		*a2p = a2;
+	}
+	
+	BMMultiLevelBiquad_queueUpdate(This);
+}
+
+
+
+
+/*BMMultiLevelBiquad_setHS2OSection
+ *
+ * set up a second-order section of a high-shelf filter of arbitrary order
+ */
+void BMMultiLevelBiquad_setHS2OSection(BMMultiLevelBiquad *This,
+									   double fc,
+									   double gain_v,
+									   size_t order,
+									   size_t section,
+									   size_t level){
+	assert(level < This->numLevels);
+	
+	// The coefficient calculation for the high-shelf filter is the same as the
+	// low-shelf except that the Bandwidth, B is calculated as the distance from
+	// fc to Nyquist and the a1 and b1 terms are negated.
+	
+	double M = order;
+	double m = section;
+	double g = gain_v;
+	double B = (This->sampleRate / 2.0) - fc; // different from low-shelf
+	double K = tan(M_PI * B / This->sampleRate);
+	
+	// ALL FORMULAE BELOW ARE COPIED VERBATIM FROM THE LOW-SHELF FILTER
+	//
+	// Mathematica prototype for second-order shelf denominator coefficients:
+	// {
+	// 	 1 + Power(K,2) - 2*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
+	//  -2 + 2*Power(K,2),
+	//   1 + Power(K,2) + 2*K*Sin(((-1 + 2*m)*Pi)/(2.*M)))
+	// }
+	double a0 = 1.0 + pow(K,2.0) - 2.0 * K * sin(((-1.0 + 2.0*m)*M_PI)/(2.0*M));
+	double a1 = -2.0 + 2.0 * pow(K,2.0);
+	double a2 = 1.0 + pow(K,2.0) + 2.0 * K * sin(((-1.0 + 2.0*m)*M_PI)/(2.0*M));
+	
+	// Mathematica:
+	// {
+	//   1 + Power(g,2/M)*Power(K,2) - 2*Power(g,1/M)*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
+	//  -2 + 2*Power(g,2/M)*Power(K,2),
+	//   1 + Power(g,2/M)*Power(K,2) + 2*Power(g,1/M)*K*Sin(((-1 + 2*m)*Pi)/(2.*M))
+	// }
+	double b0 = 1.0 + pow(g, 2.0/M) * pow(K, 2.0) - 2.0 * pow(g, 1.0/M) * K * sin(((-1.0 + 2.0 * m) * M_PI) / (2.0 * M));
+	double b1 = -2.0 + 2.0 * pow(g, 2.0/M) * pow(K, 2.0);
+	double b2 = 1.0 + pow(g, 2.0/M) * pow(K, 2.0) + 2.0 * pow(g, 1.0/M) * K * sin(((-1.0 + 2.0 * m) * M_PI) / (2.0 * M));
+	
+	// negate the b1 and a1 terms to transform low-shelf into high-shelf
+	a1 *= -1.0;
+	b2 *= -1.0;
+	
+	// normalize so a0 = 1.0;
+	a1 /= a0;
+	a2 /= a0;
+	b0 /= a0;
+	b1 /= a0;
+	b2 /= a0;
+	a0 = 1.0;
+	
+	// for each channel
+	for(size_t i=0; i < This->numChannels; i++){
+		
+		// get pointers to the filter coefficients for this channel
+		double* b0p = This->coefficients_d + level*This->numChannels*5 + i*5;
+		double* b1p = b0p + 1;
+		double* b2p = b1p + 1;
+		double* a1p = b2p + 1;
+		double* a2p = a1p + 1;
+		
+		// set the coefficients as calculated above
+		*b0p = b0;
+		*b1p = b1;
+		*b2p = b2;
+		*a1p = a1;
+		*a2p = a2;
+	}
+	
+	BMMultiLevelBiquad_queueUpdate(This);
+}
+
+
+
+
+/*BMMultiLevelBiquad_setHS1OSection
+ *
+ * set up the first-order section of a high-shelf filter of odd order
+ */
+void BMMultiLevelBiquad_setHS1OSection(BMMultiLevelBiquad *This,
+									   double fc,
+									   double gain_v,
+									   size_t order,
+									   size_t level){
+	assert(level < This->numLevels);
+	
+	double M = order;
+	double g = gain_v;
+	double B = (This->sampleRate / 2.0) - fc; // different from low-shelf
+	double K = tan(M_PI * B / This->sampleRate);
+	
+	// THE FORMULAE BELOW ARE COPIED VERBATIM FROM THE LOW-SHELF VERSION
+	//
+	// Mathematica prototype for second-order shelf denominator coefficients:
+	// {
+	// 	-1 + K,
+	//   1 + K,
+	//   0
+	// }
+	double a0 = -1.0 + K;
+	double a1 =  1.0 + K;
+	double a2 =  0.0;
+	
+	// Mathematica:
+	// {
+	//   -1 + Power(g,1/M)*K,
+	//    1 + Power(g,1/M)*K,
+	//    0
+	// }
+	double b0 = -1.0 + pow(g, 1.0/M) * K;
+	double b1 =  1.0 + pow(g, 1.0/M) * K;
+	double b2 =  0.0;
+	
+	// negate the b1 and a1 terms to transform low-shelf into high-shelf
+	a1 *= -1.0;
+	b2 *= -1.0;
+	
+	// normalize so a0 = 1.0;
+	a1 /= a0;
+	a2 /= a0;
+	b0 /= a0;
+	b1 /= a0;
+	b2 /= a0;
+	a0 = 1.0;
+	
+	// for each channel
+	for(size_t i=0; i < This->numChannels; i++){
+		
+		// get pointers to the filter coefficients for this channel
+		double* b0p = This->coefficients_d + level*This->numChannels*5 + i*5;
+		double* b1p = b0p + 1;
+		double* b2p = b1p + 1;
+		double* a1p = b2p + 1;
+		double* a2p = a1p + 1;
+		
+		// set the coefficients as calculated above
+		*b0p = b0;
+		*b1p = b1;
+		*b2p = b2;
+		*a1p = a1;
+		*a2p = a2;
+	}
+	
+	BMMultiLevelBiquad_queueUpdate(This);
+}
+
+
+
+
+void BMMultiLevelBiquad_setHighOrderLowShelf(BMMultiLevelBiquad *This, double fc, double gain_db, size_t order, size_t firstLevel, size_t numLevels){
+	
+	double gain_v = BM_DB_TO_GAIN(gain_db);
+	
+	// set the second order sections
+	for(size_t i=0; i<order/2; i++){
+		size_t section = i + 1;
+		BMMultiLevelBiquad_setLS2OSection(This, fc, gain_v, order, section, i);
+	}
+	
+	// set the first order section if there is one
+	if (!BMMLBQ_isEven(order))
+		BMMultiLevelBiquad_setLS1OSection(This, fc, gain_v, order, order/2);
+}
+
+
+
+
+void BMMultiLevelBiquad_setHighOrderHighShelf(BMMultiLevelBiquad *This, double fc, double gain_db, size_t order, size_t firstLevel, size_t numLevels){
+	
+	double gain_v = BM_DB_TO_GAIN(gain_db);
+	
+	// set the second order sections
+	for(size_t i=0; i<order/2; i++){
+		size_t section = i + 1;
+		BMMultiLevelBiquad_setHS2OSection(This, fc, gain_v, order, section, i);
+	}
+	
+	// set the first order section if there is one
+	if (!BMMLBQ_isEven(order))
+		BMMultiLevelBiquad_setHS1OSection(This, fc, gain_v, order, order/2);
+}
+
+
 
 
 
