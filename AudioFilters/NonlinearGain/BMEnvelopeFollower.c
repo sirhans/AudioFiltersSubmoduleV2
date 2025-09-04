@@ -566,6 +566,23 @@ void BMEnvelopeFollower_processBuffer(BMEnvelopeFollower *This, const float* inp
     }
 }
 
+
+// Process attack first, the release. This has the effect of ignoring short spikes
+void BMEnvelopeFollower_processBufferRMS(BMEnvelopeFollower *This, const float* input, float* output, size_t numSamples){
+	
+	// process all the attack filters in series
+	BMAttackFilter_processBufferLP(&This->attackFilters[0], input, output, numSamples);
+	for(size_t i=1; i<This->numAttackStages; i++)
+		BMAttackFilter_processBufferLP(&This->attackFilters[i], output, output, numSamples);
+
+	if(This->numReleaseStages > 0){
+		// process all the release filters in series
+		for(size_t i=0; i<This->numReleaseStages; i++)
+			BMReleaseFilter_processBuffer(&This->releaseFilters[i], output, output, numSamples);
+	}
+}
+
+
 #pragma mark - FirstOrderAttackFilter
 /*!
 *BMFOAttackFilter_init
