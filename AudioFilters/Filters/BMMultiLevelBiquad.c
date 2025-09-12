@@ -1755,23 +1755,23 @@ void BMMultiLevelBiquad_setLS2OSection(BMMultiLevelBiquad *This,
 	
 	// Mathematica prototype for second-order shelf denominator coefficients:
 	// {
-	// 	 1 + Power(K,2) - 2*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
-	//  -2 + 2*Power(K,2),
-	//   1 + Power(K,2) + 2*K*Sin(((-1 + 2*m)*Pi)/(2.*M)))
+	//    Power(g,1/M) + Power(K,2) - 2*Power(g,1/(2.*M))*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
+	// -2*Power(g,1/M) + 2*Power(K,2),
+	//    Power(g,1/M) + Power(K,2) + 2*Power(g,1/(2.*M))*K*Sin(((-1 + 2*m)*Pi)/(2.*M))
 	// }
-	double a0 = 1.0 + pow(K,2.0) - 2.0 * K * sin(((-1.0 + 2.0*m)*M_PI)/(2.0*M));
-	double a1 = -2.0 + 2.0 * pow(K,2.0);
-	double a2 = 1.0 + pow(K,2.0) + 2.0 * K * sin(((-1.0 + 2.0*m)*M_PI)/(2.0*M));
+	double a2 =     pow(g,1./M) +   pow(K,2.) - 2.*pow(g,1./(2.*M))*K*sin(((-1. + 2.*m)*M_PI)/(2.*M));
+	double a1 = -2.*pow(g,1./M) + 2*pow(K,2.);
+	double a0 =     pow(g,1./M) +   pow(K,2.) + 2.*pow(g,1./(2.*M))*K*sin(((-1. + 2.*m)*M_PI)/(2.*M));
 	
-	// Mathematica:
+	// Mathematica prototype for second-order low-shelf numerator coefficients:
 	// {
-	//   1 + Power(g,2/M)*Power(K,2) - 2*Power(g,1/M)*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
-	//  -2 + 2*Power(g,2/M)*Power(K,2),
-	//   1 + Power(g,2/M)*Power(K,2) + 2*Power(g,1/M)*K*Sin(((-1 + 2*m)*Pi)/(2.*M))
+	//    Power(g,1/M) +   Power(g,2/M)*Power(K,2) - 2*Power(g,3/(2.*M))*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
+	// -2*Power(g,1/M) + 2*Power(g,2/M)*Power(K,2),
+	//    Power(g,1/M) +   Power(g,2/M)*Power(K,2) + 2*Power(g,3/(2.*M))*K*Sin(((-1 + 2*m)*Pi)/(2.*M))
 	// }
-	double b0 = 1.0 + pow(g, 2.0/M) * pow(K, 2.0) - 2.0 * pow(g, 1.0/M) * K * sin(((-1.0 + 2.0 * m) * M_PI) / (2.0 * M));
-	double b1 = -2.0 + 2.0 * pow(g, 2.0/M) * pow(K, 2.0);
-	double b2 = 1.0 + pow(g, 2.0/M) * pow(K, 2.0) + 2.0 * pow(g, 1.0/M) * K * sin(((-1.0 + 2.0 * m) * M_PI) / (2.0 * M));
+	double b2 = pow(g,1./M) +   pow(g,2./M)*pow(K,2.) - 2.*pow(g,3./(2.*M))*K*sin(((-1. + 2.*m)*M_PI)/(2.*M));
+	double b1 = -2.*pow(g,1./M) + 2.*pow(g,2./M)*pow(K,2.);
+	double b0 = pow(g,1./M) +   pow(g,2./M)*pow(K,2.) + 2.*pow(g,3./(2.*M))*K*sin(((-1. + 2.*m)*M_PI)/(2.*M));
 	
 	// normalize so a0 = 1.0;
 	a1 /= a0;
@@ -1780,6 +1780,12 @@ void BMMultiLevelBiquad_setLS2OSection(BMMultiLevelBiquad *This,
 	b1 /= a0;
 	b2 /= a0;
 	a0 = 1.0;
+	
+	printf("\n2nd order Low-shelf\n");
+	printf(" gain = %f\n", gain_v);
+	printf("   fc = %f\n", fc);
+	printf("{1.0, %f, %f, %f, %f, %f}\n", a1, a2, b0, b1, b2);
+
 	
 	// for each channel
 	for(size_t i=0; i < This->numChannels; i++){
@@ -1797,6 +1803,14 @@ void BMMultiLevelBiquad_setLS2OSection(BMMultiLevelBiquad *This,
 		*b2p = b2;
 		*a1p = a1;
 		*a2p = a2;
+		
+//		// hardcode the coefficients for testing
+//		printf("Hardcoded coefficients! Remove this code!\n");
+//		*b0p = 0.97728675076025017;
+//		*b1p = -1.802568811373876;
+//		*b2p = 0.83627899020705332;
+//		*a1p = -1.7988364314277792;
+//		*a2p = 0.81729812091340048;
 	}
 	
 	BMMultiLevelBiquad_queueUpdate(This);
@@ -1823,23 +1837,23 @@ void BMMultiLevelBiquad_setLS1OSection(BMMultiLevelBiquad *This,
 	
 	// Mathematica prototype for second-order shelf denominator coefficients:
 	// {
-	// 	-1 + K,
-	//   1 + K,
+	// 	-Power(g,1/(2.*M)) + K,
+	//   Power(g,1/(2.*M)) + K,
 	//   0
 	// }
-	double a0 = -1.0 + K;
-	double a1 =  1.0 + K;
 	double a2 =  0.0;
+	double a1 = -pow(g,1./(2.*M)) + K;
+	double a0 =  pow(g,1./(2.*M)) + K;
+
 	
 	// Mathematica:
 	// {
-	//   -1 + Power(g,1/M)*K,
-	//    1 + Power(g,1/M)*K,
-	//    0
+	//   -Power(g,1/(2.*M)) + Power(g,1/M)*K,
+	//    Power(g,1/(2.*M)) + Power(g,1/M)*K
 	// }
-	double b0 = -1.0 + pow(g, 1.0/M) * K;
-	double b1 =  1.0 + pow(g, 1.0/M) * K;
 	double b2 =  0.0;
+	double b1 = -pow(g,1./(2.*M)) + pow(g,1./M)*K;
+	double b0 =  pow(g,1./(2.*M)) + pow(g,1./M)*K;
 	
 	// normalize so a0 = 1.0;
 	a1 /= a0;
@@ -1848,6 +1862,11 @@ void BMMultiLevelBiquad_setLS1OSection(BMMultiLevelBiquad *This,
 	b1 /= a0;
 	b2 /= a0;
 	a0 = 1.0;
+	
+	printf("\n1st order Low-shelf\n");
+	printf(" gain = %f\n", gain_v);
+	printf("   fc = %f\n", fc);
+	printf("{1.0, %f, %f, %f, %f, %f}\n", a1, a2, b0, b1, b2);
 	
 	// for each channel
 	for(size_t i=0; i < This->numChannels; i++){
@@ -1865,6 +1884,7 @@ void BMMultiLevelBiquad_setLS1OSection(BMMultiLevelBiquad *This,
 		*b2p = b2;
 		*a1p = a1;
 		*a2p = a2;
+		
 	}
 	
 	BMMultiLevelBiquad_queueUpdate(This);
@@ -1899,27 +1919,27 @@ void BMMultiLevelBiquad_setHS2OSection(BMMultiLevelBiquad *This,
 	//
 	// Mathematica prototype for second-order shelf denominator coefficients:
 	// {
-	// 	 1 + Power(K,2) - 2*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
-	//  -2 + 2*Power(K,2),
-	//   1 + Power(K,2) + 2*K*Sin(((-1 + 2*m)*Pi)/(2.*M)))
+	//    Power(g,1/M) + Power(K,2) - 2*Power(g,1/(2.*M))*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
+	// -2*Power(g,1/M) + 2*Power(K,2),
+	//    Power(g,1/M) + Power(K,2) + 2*Power(g,1/(2.*M))*K*Sin(((-1 + 2*m)*Pi)/(2.*M))
 	// }
-	double a0 = 1.0 + pow(K,2.0) - 2.0 * K * sin(((-1.0 + 2.0*m)*M_PI)/(2.0*M));
-	double a1 = -2.0 + 2.0 * pow(K,2.0);
-	double a2 = 1.0 + pow(K,2.0) + 2.0 * K * sin(((-1.0 + 2.0*m)*M_PI)/(2.0*M));
+	double a2 =     pow(g,1./M) +   pow(K,2.) - 2.*pow(g,1./(2.*M))*K*sin(((-1. + 2.*m)*M_PI)/(2.*M));
+	double a1 = -2.*pow(g,1./M) + 2*pow(K,2.);
+	double a0 =     pow(g,1./M) +   pow(K,2.) + 2.*pow(g,1./(2.*M))*K*sin(((-1. + 2.*m)*M_PI)/(2.*M));
 	
-	// Mathematica:
+	// Mathematica prototype for second-order low-shelf numerator coefficients:
 	// {
-	//   1 + Power(g,2/M)*Power(K,2) - 2*Power(g,1/M)*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
-	//  -2 + 2*Power(g,2/M)*Power(K,2),
-	//   1 + Power(g,2/M)*Power(K,2) + 2*Power(g,1/M)*K*Sin(((-1 + 2*m)*Pi)/(2.*M))
+	//    Power(g,1/M) +   Power(g,2/M)*Power(K,2) - 2*Power(g,3/(2.*M))*K*Sin(((-1 + 2*m)*Pi)/(2.*M)),
+	// -2*Power(g,1/M) + 2*Power(g,2/M)*Power(K,2),
+	//    Power(g,1/M) +   Power(g,2/M)*Power(K,2) + 2*Power(g,3/(2.*M))*K*Sin(((-1 + 2*m)*Pi)/(2.*M))
 	// }
-	double b0 = 1.0 + pow(g, 2.0/M) * pow(K, 2.0) - 2.0 * pow(g, 1.0/M) * K * sin(((-1.0 + 2.0 * m) * M_PI) / (2.0 * M));
-	double b1 = -2.0 + 2.0 * pow(g, 2.0/M) * pow(K, 2.0);
-	double b2 = 1.0 + pow(g, 2.0/M) * pow(K, 2.0) + 2.0 * pow(g, 1.0/M) * K * sin(((-1.0 + 2.0 * m) * M_PI) / (2.0 * M));
+	double b2 = pow(g,1./M) +   pow(g,2./M)*pow(K,2.) - 2.*pow(g,3./(2.*M))*K*sin(((-1. + 2.*m)*M_PI)/(2.*M));
+	double b1 = -2.*pow(g,1./M) + 2.*pow(g,2./M)*pow(K,2.);
+	double b0 = pow(g,1./M) +   pow(g,2./M)*pow(K,2.) + 2.*pow(g,3./(2.*M))*K*sin(((-1. + 2.*m)*M_PI)/(2.*M));
 	
 	// negate the b1 and a1 terms to transform low-shelf into high-shelf
 	a1 *= -1.0;
-	b2 *= -1.0;
+	b1 *= -1.0;
 	
 	// normalize so a0 = 1.0;
 	a1 /= a0;
@@ -1927,7 +1947,13 @@ void BMMultiLevelBiquad_setHS2OSection(BMMultiLevelBiquad *This,
 	b0 /= a0;
 	b1 /= a0;
 	b2 /= a0;
-	a0 = 1.0;
+	a0 /= a0;
+	
+	printf("\n2nd order High-shelf\n");
+	printf(" gain = %f\n", gain_v);
+	printf("   fc = %f\n", fc);
+	printf("{%f, %f, %f, %f, %f, %f}\n", a0, a1, a2, b0, b1, b2);
+
 	
 	// for each channel
 	for(size_t i=0; i < This->numChannels; i++){
@@ -1973,27 +1999,26 @@ void BMMultiLevelBiquad_setHS1OSection(BMMultiLevelBiquad *This,
 	//
 	// Mathematica prototype for second-order shelf denominator coefficients:
 	// {
-	// 	-1 + K,
-	//   1 + K,
-	//   0
+	//   0,
+	// 	-Power(g,1/(2.*M)) + K,
+	//   Power(g,1/(2.*M)) + K,
 	// }
-	double a0 = -1.0 + K;
-	double a1 =  1.0 + K;
 	double a2 =  0.0;
+	double a1 = -pow(g,1./(2.*M)) + K;
+	double a0 =  pow(g,1./(2.*M)) + K;
 	
 	// Mathematica:
 	// {
-	//   -1 + Power(g,1/M)*K,
-	//    1 + Power(g,1/M)*K,
-	//    0
+	//   -Power(g,1/(2.*M)) + Power(g,1/M)*K,
+	//    Power(g,1/(2.*M)) + Power(g,1/M)*K
 	// }
-	double b0 = -1.0 + pow(g, 1.0/M) * K;
-	double b1 =  1.0 + pow(g, 1.0/M) * K;
 	double b2 =  0.0;
+	double b1 = -pow(g,1./(2.*M)) + pow(g,1./M)*K;
+	double b0 =  pow(g,1./(2.*M)) + pow(g,1./M)*K;
 	
 	// negate the b1 and a1 terms to transform low-shelf into high-shelf
 	a1 *= -1.0;
-	b2 *= -1.0;
+	b1 *= -1.0;
 	
 	// normalize so a0 = 1.0;
 	a1 /= a0;
@@ -2002,6 +2027,11 @@ void BMMultiLevelBiquad_setHS1OSection(BMMultiLevelBiquad *This,
 	b1 /= a0;
 	b2 /= a0;
 	a0 = 1.0;
+	
+	printf("\n1st order High-shelf\n");
+	printf(" gain = %f\n", gain_v);
+	printf("   fc = %f\n", fc);
+	printf("{1.0, %f, %f, %f, %f, %f}\n", a1, a2, b0, b1, b2);
 	
 	// for each channel
 	for(size_t i=0; i < This->numChannels; i++){
@@ -2019,45 +2049,57 @@ void BMMultiLevelBiquad_setHS1OSection(BMMultiLevelBiquad *This,
 		*b2p = b2;
 		*a1p = a1;
 		*a2p = a2;
+
 	}
 	
 	BMMultiLevelBiquad_queueUpdate(This);
+	
 }
 
 
 
 
-void BMMultiLevelBiquad_setHighOrderLowShelf(BMMultiLevelBiquad *This, double fc, double gain_db, size_t order, size_t firstLevel, size_t numLevels){
+void BMMultiLevelBiquad_setLowShelfHighOrder(BMMultiLevelBiquad *This, double fc, double gain_db, size_t order, size_t firstLevel, size_t numLevels){
+	
+	if(BMMLBQ_isEven(order))
+		assert(numLevels = order / 2);
+	else
+		assert(numLevels = 1 + (order / 2));
 	
 	double gain_v = BM_DB_TO_GAIN(gain_db);
 	
 	// set the second order sections
 	for(size_t i=0; i<order/2; i++){
 		size_t section = i + 1;
-		BMMultiLevelBiquad_setLS2OSection(This, fc, gain_v, order, section, i);
+		BMMultiLevelBiquad_setLS2OSection(This, fc, gain_v, order, section, firstLevel + i);
 	}
 	
 	// set the first order section if there is one
 	if (!BMMLBQ_isEven(order))
-		BMMultiLevelBiquad_setLS1OSection(This, fc, gain_v, order, order/2);
+		BMMultiLevelBiquad_setLS1OSection(This, fc, gain_v, order, firstLevel + order/2);
 }
 
 
 
 
-void BMMultiLevelBiquad_setHighOrderHighShelf(BMMultiLevelBiquad *This, double fc, double gain_db, size_t order, size_t firstLevel, size_t numLevels){
+void BMMultiLevelBiquad_setHighShelfHighOrder(BMMultiLevelBiquad *This, double fc, double gain_db, size_t order, size_t firstLevel, size_t numLevels){
+	
+	if(order % 2 == 0)
+		assert(numLevels = order / 2);
+	else
+		assert(numLevels = 1 + (order / 2));
 	
 	double gain_v = BM_DB_TO_GAIN(gain_db);
 	
 	// set the second order sections
 	for(size_t i=0; i<order/2; i++){
 		size_t section = i + 1;
-		BMMultiLevelBiquad_setHS2OSection(This, fc, gain_v, order, section, i);
+		BMMultiLevelBiquad_setHS2OSection(This, fc, gain_v, order, section, firstLevel + i);
 	}
 	
 	// set the first order section if there is one
 	if (!BMMLBQ_isEven(order))
-		BMMultiLevelBiquad_setHS1OSection(This, fc, gain_v, order, order/2);
+		BMMultiLevelBiquad_setHS1OSection(This, fc, gain_v, order, firstLevel + order/2);
 }
 
 

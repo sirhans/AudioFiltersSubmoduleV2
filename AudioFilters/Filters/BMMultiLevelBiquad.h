@@ -254,7 +254,7 @@ void BMMultiLevelBiquad_setHighOrderBWLP(BMMultiLevelBiquad* This, double fc, si
 
 
 
-/*!BMMultiLevelBiquad_setHighOrderLowShelf
+/*!BMMultiLevelBiquad_setLowShelfHighOrder
  *
  * Sets up a low shelf filter with arbitrary order
  *
@@ -265,7 +265,21 @@ void BMMultiLevelBiquad_setHighOrderBWLP(BMMultiLevelBiquad* This, double fc, si
  * @param firstLevel the filter will use numLevels contiguous biquad sections, beginning with firstLevel
  * @param numLevels the number of biquad sections to use. Must be equal to order/2 for even order or ceil(order/2) for odd order
  */
-void BMMultiLevelBiquad_setHighOrderLowShelf(BMMultiLevelBiquad *This, double fc, double gain_db, size_t order, size_t firstLevel, size_t numLevels);
+void BMMultiLevelBiquad_setLowShelfHighOrder(BMMultiLevelBiquad *This, double fc, double gain_db, size_t order, size_t firstLevel, size_t numLevels);
+
+
+/*!BMMultiLevelBiquad_setHighShelfHighOrder
+ *
+ * Sets up a low shelf filter with arbitrary order
+ *
+ * @param This pointer to an initialized struct
+ * @param fc filter cutoff frequency
+ * @param gain_db shelf gain in decibels
+ * @param order filter order (may be odd or even)
+ * @param firstLevel the filter will use numLevels contiguous biquad sections, beginning with firstLevel
+ * @param numLevels the number of biquad sections to use. Must be equal to order/2 for even order or ceil(order/2) for odd order
+ */
+void BMMultiLevelBiquad_setHighShelfHighOrder(BMMultiLevelBiquad *This, double fc, double gain_db, size_t order, size_t firstLevel, size_t numLevels);
 
 
 
