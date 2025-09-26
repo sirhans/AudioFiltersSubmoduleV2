@@ -16,6 +16,8 @@
 #include "BMSpectrum.h"
 #include "Constants.h"
 
+#define BMLF_MIN_WAVELENGTHS_PER_LOOP 4
+
 /*!
  *loopQualityEval
  *
@@ -34,8 +36,8 @@ float measureLoopNoise(float *testBuffer,
 					     size_t fftSize,
 					     BMSpectrum *spectrum){
 	
-	// the loop must be at least two wavelengths long
-	assert(loopLength >= waveLength * 2);
+	// the loop must be at least this long
+	assert(loopLength >= waveLength * BMLF_MIN_WAVELENGTHS_PER_LOOP);
 	
 	// copy the loop from the audio buffer into the test buffer 2 times
 	for(size_t n=0; n < 2; n++)
@@ -115,8 +117,7 @@ bmLoopPoints BMFindLoop(float *audioBuffer,
 	size_t waveLength = (size_t)(sampleRate / frequency);
 	
 	// how long is the fft size needed to find the spectrum at this wavelength?
-	// it should be at least twice the wavelength
-	size_t fftSize = nextPowOf2((uint32_t) (2 * waveLength));
+	size_t fftSize = nextPowOf2((uint32_t) (BMLF_MIN_WAVELENGTHS_PER_LOOP * waveLength));
 	
 	// allocate memory for calculating the spectrum of the audio before the loop
 	// point, across the loop point, and after the loop point
@@ -132,18 +133,18 @@ bmLoopPoints BMFindLoop(float *audioBuffer,
 	// A is after the loop point, in other words at the start of the loop
 	memset(AWindow, 0, sizeof(float) * fftSize);
 	float beta = 15.0;
-	BMFFT_generateKaiserCoefficients(AWindow, beta, 2 * waveLength);
+	BMFFT_generateKaiserCoefficients(AWindow, beta, BMLF_MIN_WAVELENGTHS_PER_LOOP * waveLength);
 	//
 	// B is centred around the loop point
 	// we calculate how to shift the window to the centre of the FFT
-	size_t shiftToCentre = (fftSize - (waveLength * 2)) / 2;
+	size_t shiftToCentre = (fftSize - (waveLength * BMLF_MIN_WAVELENGTHS_PER_LOOP)) / 2;
 	memset(BWindow, 0, sizeof(float) * fftSize);
-	memcpy(BWindow + shiftToCentre, AWindow, sizeof(float) * waveLength * 2);
+	memcpy(BWindow + shiftToCentre, AWindow, sizeof(float) * waveLength * BMLF_MIN_WAVELENGTHS_PER_LOOP);
 	//
 	// C is before the loop point, in other words at the end of the loop
-	size_t shiftToEnd = fftSize - (waveLength * 2);
+	size_t shiftToEnd = fftSize - (waveLength * BMLF_MIN_WAVELENGTHS_PER_LOOP);
 	memset(CWindow, 0, sizeof(float) * fftSize);
-	memcpy(CWindow + shiftToEnd, AWindow, sizeof(float) * waveLength * 2);
+	memcpy(CWindow + shiftToEnd, AWindow, sizeof(float) * waveLength * BMLF_MIN_WAVELENGTHS_PER_LOOP);
 	
 	// init a struct for finding the magnitude spectrum
 	BMSpectrum spectrum;
@@ -152,9 +153,9 @@ bmLoopPoints BMFindLoop(float *audioBuffer,
 	// the loop length must be shorter than the buffer length
 	assert(maxLoopLength <= audioBufferLength);
 	
-	// the loop length must be longer than twice the wavelength so that we can
+	// the loop length must be longer than several times the wavelength so that we can
 	// clearly measure the spectrum
-	assert(minLoopLength >= waveLength * 2);
+	assert(minLoopLength >= waveLength * BMLF_MIN_WAVELENGTHS_PER_LOOP);
 	
 	// so far the best loop we've found at length = loopLength has quality of 0
 	// because we haven't started searching yet.
