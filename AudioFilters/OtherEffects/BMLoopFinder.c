@@ -52,11 +52,11 @@ float measureLoopNoise(float *testBuffer,
 	//    2. take the abs(fft)
 	BMSpectrum_processDataBasic(spectrum, A, A, applyWindow, fftSize);
 	
-	// B: get the spectrum at the end of the loop
+	// B: get the spectrum centred around the loop point
 	vDSP_vmul(BWindow, 1, testBuffer + loopLength - (fftSize / 2), 1, B, 1, fftSize);
 	BMSpectrum_processDataBasic(spectrum, B, B, applyWindow, fftSize);
 	
-	// C: get the spectrum in the region centred around the loop point
+	// C: get the spectrum near the end of the loop
 	vDSP_vmul(BWindow, 1, testBuffer + loopLength - fftSize, 1, C, 1, fftSize);
 	BMSpectrum_processDataBasic(spectrum, C, C, applyWindow, fftSize);
 	
