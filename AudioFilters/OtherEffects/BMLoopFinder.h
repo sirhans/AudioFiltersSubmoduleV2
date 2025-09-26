@@ -18,7 +18,7 @@ typedef struct bmLoopPoints {
 } bmLoopPoints;
 
 /*!
- *BMFindLoop
+ *BMLoopFinder
  *
  * Finds the best pair of indices for looping in *buffer
  *
@@ -32,12 +32,12 @@ typedef struct bmLoopPoints {
  *
  * @returns a pair of loop points, indices in buffer
  */
-bmLoopPoints BMFindLoop(float *audioBuffer,
-						float sampleRate,
-						float frequency,
-						size_t audioBufferLength,
-						size_t minLoopLength,
-						size_t maxLoopLength,
-						float loopNoiseTargetDb);
+bmLoopPoints BMLoopFinder(float *audioBuffer,
+						  float sampleRate,
+						  float frequency,
+						  size_t audioBufferLength,
+						  size_t minLoopLength,
+						  size_t maxLoopLength,
+						  float loopNoiseTargetDb);
 
 #endif /* BMLoopFinder_h */

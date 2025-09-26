@@ -102,13 +102,13 @@ void BMLoopFinder_FreeBuffers(float *ltb,
 
 
 
-bmLoopPoints BMFindLoop(float *audioBuffer,
-						float sampleRate,
-						float frequency,
-						size_t audioBufferLength,
-						size_t minLoopLength,
-						size_t maxLoopLength,
-						float loopNoiseTargetDb){
+bmLoopPoints BMLoopFinder(float *audioBuffer,
+						  float sampleRate,
+						  float frequency,
+						  size_t audioBufferLength,
+						  size_t minLoopLength,
+						  size_t maxLoopLength,
+						  float loopNoiseTargetDb){
 	
 	// allocate memory for a temp buffer for testing loops to see how smooth they are
 	float *loopTestBuffer = malloc(sizeof(float) * audioBufferLength * 2);
@@ -169,11 +169,11 @@ bmLoopPoints BMFindLoop(float *audioBuffer,
 		
 		// Starting at the end of the buffer, find the best loop of length loopLength,
 		// for every startSample in [0, numSamples - loopLength]...
-		for (size_t startSample = audioBufferLength - loopLength; startSample >= 0; startSample--){
+		for (int64_t startSample = audioBufferLength - loopLength; startSample >= 0; startSample--){
 			
 			// measure and record the quality of the loop beginning at startSample
 			float loopNoise = measureLoopNoise(loopTestBuffer,
-											   audioBuffer + startSample,
+											   audioBuffer + (size_t)startSample,
 											   loopLength,
 											   waveLength,
 											   A, B, C,
@@ -183,6 +183,7 @@ bmLoopPoints BMFindLoop(float *audioBuffer,
 			
 			// if this loop is the best one we've found so far
 			if (loopNoise < lowestLoopNoiseFound) {
+				printf("Lowest loop noise: %f\n", lowestLoopNoiseFound);
 				
 				// if the noise of this loop is below the target level, stop searching and return this result immediately
 				if (loopNoise < loopNoiseTargetDb){
