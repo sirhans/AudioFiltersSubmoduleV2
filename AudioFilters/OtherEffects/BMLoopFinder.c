@@ -19,11 +19,9 @@
 /*!
  *loopQualityEval
  *
- * 0 is the perfect loop quality, indicating zero difference in the spectra before, after,
- * and across the loop point. If there is any difference, it is reported as a negative value
- * so that the worse the quality of the loop, the more negative the result.
+ * This function measures the noise, in decibels from a set of loop points.
  */
-float measureLoopQuality(float *testBuffer,
+float measureLoopNoise(float *testBuffer,
 						 float *loopStartInAudioBuffer,
 						 size_t loopLength,
 						 size_t waveLength,
@@ -73,11 +71,13 @@ float measureLoopQuality(float *testBuffer,
 	// find the maximum of the two distances
 	float maxDistance = BM_MAX(beforeDistance, afterDistance);
 	
-	// Negate the distance and return it. We negate so that more distance
-	// gives a smaller result, and therefore higher distance = higher quality.
-	// We divide the distance by the waveLength to normalize so that the same
-	// setting for quality target works for any wavelength.
-	return - (maxDistance / sqrtf(waveLength));
+	// normalize so that the same quality setting works at any frequency
+	float maxDistanceNormalized = maxDistance / sqrt(waveLength);
+	
+	// convert the distance to decibels
+	float loopNoise = BM_GAIN_TO_DB(maxDistanceNormalized);
+	
+	return loopNoise;
 }
 					  
 
@@ -106,9 +106,7 @@ bmLoopPoints BMFindLoop(float *audioBuffer,
 						size_t audioBufferLength,
 						size_t minLoopLength,
 						size_t maxLoopLength,
-						float qualityGoal){
-	// 0 is the highest quality allowed. Lower numbers are worse.
-	assert(qualityGoal <= 0.0);
+						float loopNoiseTargetDb){
 	
 	// allocate memory for a temp buffer for testing loops to see how smooth they are
 	float *loopTestBuffer = malloc(sizeof(float) * audioBufferLength * 2);
@@ -160,9 +158,9 @@ bmLoopPoints BMFindLoop(float *audioBuffer,
 	
 	// so far the best loop we've found at length = loopLength has quality of 0
 	// because we haven't started searching yet.
-	float bestQuality = -(FLT_MAX/2.0);
-	float bestQualityStartIndex = 0;
-	float bestQualityLoopLength = 0;
+	float lowestLoopNoiseFound = FLT_MAX;
+	float lowestNoiseLoopStartIndex = 0;
+	float lowestNoiseLoopLength = 0;
 		
 	// Starting with the longest loop,
 	// for every loop of length loopLength in [minLoopLength, maxLoopLength]...
@@ -173,30 +171,31 @@ bmLoopPoints BMFindLoop(float *audioBuffer,
 		for (size_t startSample = audioBufferLength - loopLength; startSample >= 0; startSample--){
 			
 			// measure and record the quality of the loop beginning at startSample
-			float loopQuality = measureLoopQuality(loopTestBuffer,
-												   audioBuffer + startSample,
-												   loopLength,
-												   waveLength,
-												   A, B, C,
-												   AWindow, BWindow, CWindow,
-												   fftSize,
-												   &spectrum);
+			float loopNoise = measureLoopNoise(loopTestBuffer,
+											   audioBuffer + startSample,
+											   loopLength,
+											   waveLength,
+											   A, B, C,
+											   AWindow, BWindow, CWindow,
+											   fftSize,
+											   &spectrum);
 			
-			// if this loop is better quality than any others at this length
-			if (loopQuality > bestQuality) {
-				// if the quality of this loop is sufficient, stop searching and return this result immediately
-				if (loopQuality > qualityGoal){
+			// if this loop is the best one we've found so far
+			if (loopNoise < lowestLoopNoiseFound) {
+				
+				// if the noise of this loop is below the target level, stop searching and return this result immediately
+				if (loopNoise < loopNoiseTargetDb){
 					BMLoopFinder_FreeBuffers(loopTestBuffer, A, B, C, AWindow, BWindow, CWindow);
-					bmLoopPoints lp = {startSample, startSample + loopLength - 1, loopQuality};
+					bmLoopPoints lp = {startSample, startSample + loopLength - 1, loopNoise};
 					return lp;
 				}
 				
-				// Or if this loop doesn't meet the quality standard we're looking for,
-				// take note of its quality, loop length, and starting sample index in
+				// Or if this loop doesn't meet the noise target we're looking for,
+				// take note of its noise level, loop length, and starting sample index in
 				// case we don't find a better one later on.
-				bestQuality = loopQuality;
-				bestQualityStartIndex = startSample;
-				bestQualityLoopLength = loopLength;
+				lowestLoopNoiseFound = loopNoise;
+				lowestNoiseLoopStartIndex = startSample;
+				lowestNoiseLoopLength = loopLength;
 			}
 		}
 	}
@@ -205,6 +204,6 @@ bmLoopPoints BMFindLoop(float *audioBuffer,
 	
 	// if we reach this point, we didn't find a loop that met our quality goal,
 	// so we return the best quality loop we have
-	bmLoopPoints lp = {bestQualityStartIndex, bestQualityStartIndex + bestQualityLoopLength - 1, bestQuality};
+	bmLoopPoints lp = {lowestNoiseLoopStartIndex, lowestNoiseLoopStartIndex + lowestNoiseLoopLength - 1, lowestLoopNoiseFound};
 	return lp;
 }
