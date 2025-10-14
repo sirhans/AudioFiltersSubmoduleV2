@@ -1781,10 +1781,10 @@ void BMMultiLevelBiquad_setLS2OSection(BMMultiLevelBiquad *This,
 	b2 /= a0;
 	a0 = 1.0;
 	
-	printf("\n2nd order Low-shelf\n");
-	printf(" gain = %f\n", gain_v);
-	printf("   fc = %f\n", fc);
-	printf("{1.0, %f, %f, %f, %f, %f}\n", a1, a2, b0, b1, b2);
+//	printf("\n2nd order Low-shelf\n");
+//	printf(" gain = %f\n", gain_v);
+//	printf("   fc = %f\n", fc);
+//	printf("{1.0, %f, %f, %f, %f, %f}\n", a1, a2, b0, b1, b2);
 
 	
 	// for each channel
@@ -1863,10 +1863,10 @@ void BMMultiLevelBiquad_setLS1OSection(BMMultiLevelBiquad *This,
 	b2 /= a0;
 	a0 = 1.0;
 	
-	printf("\n1st order Low-shelf\n");
-	printf(" gain = %f\n", gain_v);
-	printf("   fc = %f\n", fc);
-	printf("{1.0, %f, %f, %f, %f, %f}\n", a1, a2, b0, b1, b2);
+//	printf("\n1st order Low-shelf\n");
+//	printf(" gain = %f\n", gain_v);
+//	printf("   fc = %f\n", fc);
+//	printf("{1.0, %f, %f, %f, %f, %f}\n", a1, a2, b0, b1, b2);
 	
 	// for each channel
 	for(size_t i=0; i < This->numChannels; i++){
@@ -1949,10 +1949,10 @@ void BMMultiLevelBiquad_setHS2OSection(BMMultiLevelBiquad *This,
 	b2 /= a0;
 	a0 /= a0;
 	
-	printf("\n2nd order High-shelf\n");
-	printf(" gain = %f\n", gain_v);
-	printf("   fc = %f\n", fc);
-	printf("{%f, %f, %f, %f, %f, %f}\n", a0, a1, a2, b0, b1, b2);
+//	printf("\n2nd order High-shelf\n");
+//	printf(" gain = %f\n", gain_v);
+//	printf("   fc = %f\n", fc);
+//	printf("{%f, %f, %f, %f, %f, %f}\n", a0, a1, a2, b0, b1, b2);
 
 	
 	// for each channel
@@ -2028,10 +2028,10 @@ void BMMultiLevelBiquad_setHS1OSection(BMMultiLevelBiquad *This,
 	b2 /= a0;
 	a0 = 1.0;
 	
-	printf("\n1st order High-shelf\n");
-	printf(" gain = %f\n", gain_v);
-	printf("   fc = %f\n", fc);
-	printf("{1.0, %f, %f, %f, %f, %f}\n", a1, a2, b0, b1, b2);
+//	printf("\n1st order High-shelf\n");
+//	printf(" gain = %f\n", gain_v);
+//	printf("   fc = %f\n", fc);
+//	printf("{1.0, %f, %f, %f, %f, %f}\n", a1, a2, b0, b1, b2);
 	
 	// for each channel
 	for(size_t i=0; i < This->numChannels; i++){
