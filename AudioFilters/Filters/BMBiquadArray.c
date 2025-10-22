@@ -7,8 +7,6 @@
 //
 
 #include "BMBiquadArray.h"
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
