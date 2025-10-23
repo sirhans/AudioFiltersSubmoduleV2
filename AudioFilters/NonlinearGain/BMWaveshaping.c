@@ -6,7 +6,7 @@
 //  Anyone may use this file without restrictions of any kind
 //
 
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include <simd/simd.h>
 
 /*!

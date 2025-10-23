@@ -9,7 +9,7 @@
 //
 
 
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMStaticDelay.h"
 #include "Constants.h"
 #include "BMReverb.h"

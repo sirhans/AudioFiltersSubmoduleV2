@@ -8,7 +8,7 @@
 
 #include "BMPanMixer.h"
 #import <math.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 void BMPanMixer_init(BMPanMixer* This,PanMode mode, float sampleRate){
     This->panMix = 0.5;

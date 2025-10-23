@@ -12,11 +12,11 @@
 #include "BMCompressor.h"
 #include <stdlib.h>
 #include <math.h>
-#include "fastlog.h"
+//#include "fastlog.h"
 //#include "fastpow.h"
-#include "BMVectorOps.h"
-#include "Constants.h"
-#include "BMUnitConversion.h"
+//#include "BMVectorOps.h"
+#include "../Constants.h"
+#include "../MathUtilities/BMUnitConversion.h"
 
 
 void BMCompressor_init(BMCompressor *This, float sampleRate){

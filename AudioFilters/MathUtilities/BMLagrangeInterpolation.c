@@ -8,7 +8,7 @@
 
 #include "BMLagrangeInterpolation.h"
 #include <stdlib.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
 
 float calculateH(float fractionalDelay, float n,float order);

@@ -7,10 +7,7 @@
 //
 
 #include "BMPearsonCorrelation.h"
-#include <Accelerate/Accelerate.h>
-
-
-
+#include "../AudioFilter.h"
 
 /*
  * The pearson correlation coefficient of X and Y is

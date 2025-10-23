@@ -5,10 +5,10 @@
 //  Created by hans anderson on 5/8/24.
 //
 
-#include <assert.h>
-#include <Accelerate/Accelerate.h>
+//#include <assert.h>
 #include "BMLFOPan2.h"
-#include "BMUnitConversion.h"
+#include "../../AudioFilters/MathUtilities/BMUnitConversion.h"
+#include "../../AudioFilters/AudioFilter.h"
 
 
 

@@ -8,8 +8,10 @@
 
 #include "BMOscillatorArray.h"
 #include "BMQuadratureOscillator.h"
+#include "../AudioFilter.h"
 #include <Accelerate/Accelerate.h>
 #include <stdlib.h>
+#include "simd/simd.h"
 
 #ifdef __cplusplus
 extern "C" {

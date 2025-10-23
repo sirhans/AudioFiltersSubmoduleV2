@@ -17,9 +17,9 @@
 #include "BMWetDryMixer.h"
 #include "BMStereoWidener.h"
 #include <math.h>
+#include "../AudioFilter.h"
 
 #ifdef __APPLE__
-#include <Accelerate/Accelerate.h>
 #include <simd/simd.h>
 #else
 #include "BMCrossPlatformVDSP.h"

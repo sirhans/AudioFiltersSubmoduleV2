@@ -7,7 +7,7 @@
 //
 
 #include "BMSpectralCentroid.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
 
 

@@ -12,7 +12,7 @@
 //
 
 #include "BMGaussianUpsampler.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 void BMGaussianUpsampler_init(BMGaussianUpsampler *This, size_t upsampleFactor, size_t lowpassNumPasses){
 	This->upsampleFactor = upsampleFactor;

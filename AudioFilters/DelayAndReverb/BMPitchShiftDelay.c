@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
 
 void BMPitchShiftDelay_init(BMPitchShiftDelay* This,float duration,size_t delayRange,size_t maxDelayRange,size_t sampleRate,bool startAtMaxRange,bool useFilter){

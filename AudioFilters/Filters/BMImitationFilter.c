@@ -9,7 +9,7 @@
 #include "BMImitationFilter.h"
 #include "Constants.h"
 #include <stdlib.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 
 /*!

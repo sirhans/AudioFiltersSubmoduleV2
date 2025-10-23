@@ -6,10 +6,8 @@
 //
 
 #include "BMSineWaveshaper.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
-
-
 
 
 void BMSineWaveshaper_init(BMSineWaveshaper *This){

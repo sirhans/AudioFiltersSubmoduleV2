@@ -7,7 +7,7 @@
 //
 
 #include "BMSmoothValue.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 
 

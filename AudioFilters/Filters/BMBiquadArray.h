@@ -26,7 +26,7 @@
 #define BMBiquadArray_h
 
 #include <stdio.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include <assert.h>
 #include <simd/simd.h>
 

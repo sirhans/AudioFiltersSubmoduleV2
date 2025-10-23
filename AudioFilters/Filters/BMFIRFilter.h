@@ -18,7 +18,7 @@ extern "C" {
 #include <stdio.h>
 #include "Constants.h"
 #include "TPCircularBuffer.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
     
     typedef struct BMFIRFilter {
         TPCircularBuffer inputBuffer;

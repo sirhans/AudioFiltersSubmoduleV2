@@ -7,7 +7,7 @@
 //
 
 #include "BMFirstOrderVariableFilter.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 // This computes a third order approximation to the normalised value of the coefficient a1/a0
 // The exact value we are approximating here is copied from BMMultilevelBiquad setHighpass6db

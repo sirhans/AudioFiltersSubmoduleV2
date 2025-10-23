@@ -18,7 +18,7 @@
 #define BMQuadraticRectifier_h
 
 #include <stdio.h>
-//#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMQuadraticThreshold.h"
 
 

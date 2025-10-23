@@ -7,7 +7,7 @@
 //
 
 #include "BMSincUpsampler.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMFFT.h"
 
 

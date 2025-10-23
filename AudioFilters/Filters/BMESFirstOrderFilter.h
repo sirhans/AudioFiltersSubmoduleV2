@@ -10,7 +10,7 @@
 #define BMESFirstOrderFilter_h
 
 #include <stdio.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 typedef struct BMESFirstOrderFilter{
     float** parametersTable;
