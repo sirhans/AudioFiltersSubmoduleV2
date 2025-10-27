@@ -13,7 +13,7 @@
 
 #include <stdio.h>
 #include "../AudioFilter.h"
-#include "BMSmoothGain.h"
+#include "../OtherEffects/BMSmoothGain.h"
 
 #ifdef __cplusplus
 extern "C" {

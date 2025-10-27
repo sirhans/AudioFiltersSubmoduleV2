@@ -8,7 +8,7 @@
 
 #include "../AudioFilter.h"
 #include "BMDither.h"
-#include "Constants.h"
+#include "../Constants.h"
 #include <math.h>
 
 #define BMDITHER_HIGH_SHELF_ORDER 8

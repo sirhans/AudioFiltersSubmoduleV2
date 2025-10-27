@@ -17,10 +17,10 @@
 #define BMDither_h
 
 #include <stdio.h>
-#include "BMMultiLevelBiquad.h"
-#include "BMMultiLevelSVF.h"
+#include "../Filters/BMMultiLevelBiquad.h"
+#include "../Filters/BMMultiLevelSVF.h"
 #include "BMSmoothSwitch.h"
-#include "BMWhiteNoiseOscillator.h"
+#include "../Oscillators/BMWhiteNoiseOscillator.h"
 
 typedef enum {BMDITHER_16} DitherBitDepth;
 
