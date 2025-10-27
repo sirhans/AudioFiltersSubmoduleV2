@@ -758,7 +758,7 @@ typedef struct vDSP_biquadm_SetupStruct *vDSP_biquadm_Setup;
     double) frees the memory allocated by the corresponding create-setup
     routine.
 */
-extern __nullable vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeffs,
+extern vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeffs,
                                                               vDSP_Length   numLevels,
                                                               vDSP_Length   numChannels);
 
@@ -819,8 +819,8 @@ extern void vDSP_biquadm_SetActiveFilters(vDSP_biquadm_Setup _Nonnull __setup,
     vDSP_biquadm_CreateSetupD, respectively.
  */
 extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
-    const float * __nonnull * __nonnull __X, vDSP_Stride __IX,
-    float       * __nonnull * __nonnull __Y, vDSP_Stride __IY,
+    const float * _Nonnull * _Nonnull __X, vDSP_Stride __IX,
+    float       * _Nonnull * _Nonnull __Y, vDSP_Stride __IY,
     vDSP_Length              __N);
     /*  These routines perform the same function as M calls to vDSP_biquad or
         vDSP_biquadD, where M, the delay values, and the biquad setups are

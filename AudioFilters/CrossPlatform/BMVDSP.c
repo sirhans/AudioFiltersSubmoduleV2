@@ -6,7 +6,7 @@
 #include "BMVDSP.h"
 #include <math.h>
 #include "BMOSSystem.h"
-#include <arm_neon.h>
+#include "../AudioFilter.h"
     
 void bDSP_vramp(const float *initialValue, const float *increment, float *output, size_t stride,
                 size_t numSamples) {
@@ -19,48 +19,48 @@ void bDSP_vramp(const float *initialValue, const float *increment, float *output
     }
 }
 
-//void bDSP_vsmul(const float *V,
-//                size_t strideV,
-//                const float *S,
-//                float *output,
-//                size_t strideOutput,
-//                size_t numSamples){
-//    size_t outputI = 0;
-//    size_t VI = 0;
-//
-//    for (size_t c=0; c<numSamples; c++){
-//        output[outputI] = V[VI] * *S;
-//        outputI += strideOutput;
-//        VI += strideV;
-//    }
-//}
+void bDSP_vsmul(const float *V,
+                size_t strideV,
+                const float *S,
+                float *output,
+                size_t strideOutput,
+                size_t numSamples){
+    size_t outputI = 0;
+    size_t VI = 0;
 
-void bDSP_vsmul(const float * _Nonnull A, size_t IA, const float* _Nonnull  B,  float * _Nonnull C, size_t IC, size_t N){
-    // only accept strides of 1
-    assert(IA == 1);
-    assert(IC == 1);
-
-    // copy the scalar B into a vector of 4 32 bit floats
-    const float32x4_t B4 = vdupq_n_f32(*B);
-
-    // multiply in groups of 4
-    size_t endSIMD = N - (N % 4);
-    size_t i=0;
-    for(; i < endSIMD; i += 4){
-        // load the next 4 floats from A
-        float32x4_t A4i = vld1q_f32(A + i);
-
-        // multiply them by B
-        float32x4_t C4i = vmulq_f32(A4i,B4);
-
-        // write out to C
-        vst1q_f32(C + i, C4i);
+    for (size_t c=0; c<numSamples; c++){
+        output[outputI] = V[VI] * *S;
+        outputI += strideOutput;
+        VI += strideV;
     }
-
-    // if there are some elements left back because N isn't divisible by 4, finish them up
-    for(; i < N; i++)
-        C[i] = A[i] * *B;
 }
+
+//void bDSP_vsmul(const float * _Nonnull A, size_t IA, const float* _Nonnull  B,  float * _Nonnull C, size_t IC, size_t N){
+//    // only accept strides of 1
+//    assert(IA == 1);
+//    assert(IC == 1);
+//
+//    // copy the scalar B into a vector of 4 32 bit floats
+//    const float32x4_t B4 = vdupq_n_f32(*B);
+//
+//    // multiply in groups of 4
+//    size_t endSIMD = N - (N % 4);
+//    size_t i=0;
+//    for(; i < endSIMD; i += 4){
+//        // load the next 4 floats from A
+//        float32x4_t A4i = vld1q_f32(A + i);
+//
+//        // multiply them by B
+//        float32x4_t C4i = vmulq_f32(A4i,B4);
+//
+//        // write out to C
+//        vst1q_f32(C + i, C4i);
+//    }
+//
+//    // if there are some elements left back because N isn't divisible by 4, finish them up
+//    for(; i < N; i++)
+//        C[i] = A[i] * *B;
+//}
 
 void bDSP_vmul(const float *A,
                size_t strideA,
@@ -1700,7 +1700,7 @@ bool bDSP_vacD(double* array1, double* array2, size_t length){
 }
 
         
-extern __nullable vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeffs,
+extern vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeffs,
                                                               vDSP_Length numLevels,
                                                               vDSP_Length numChannels){
     vDSP_biquadm_Setup This = malloc(sizeof(vDSP_biquadm_SetupStruct));
@@ -1862,8 +1862,8 @@ void biquadSingleChannel(const float *input, float *output, double *coefficients
     multi-channel biquadm IIR filter created with vDSP_biquadm_CreateSetup.
  */
 extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
-    const float * __nonnull * __nonnull __X, vDSP_Stride __IX,
-    float       * __nonnull * __nonnull __Y, vDSP_Stride __IY,
+    const float * _Nonnull * _Nonnull __X, vDSP_Stride __IX,
+    float       * _Nonnull * _Nonnull __Y, vDSP_Stride __IY,
                          vDSP_Length              __N){
     // force the strides to be 1
     assert(__IX == 1);
