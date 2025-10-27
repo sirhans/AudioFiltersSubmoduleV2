@@ -106,6 +106,11 @@
     #define vvfmodf bvfmodf
     #define vvexpf bvexpf
     #define vvceilf bvceilf
+
+    #define DSPSplitComplex BSPSplitComplex
+    #define DSPComplex BSPComplex
+    #define DSPDoubleComplex BSPDoubleComplex
+
 #endif
 
 #endif /* AudioFilter_h */

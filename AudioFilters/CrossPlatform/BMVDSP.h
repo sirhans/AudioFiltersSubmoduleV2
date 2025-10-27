@@ -667,6 +667,11 @@ typedef struct BSPDoubleComplex {
 } BSPDoubleComplex;
 
 
+//typedef struct DSPDoubleComplex {
+//    double real;
+//    double imag;
+//} DSPDoubleComplex;
+
 
 void bDSP_ctoz(
                const BSPComplex      * C,
@@ -709,6 +714,126 @@ void bDSP_ctoi(
                float    * C,
                 long            IC,
                size_t            N);
+
+/*  Define types:
+
+        vDSP_Length for numbers of elements in arrays and for indices of
+        elements in arrays.  (It is also used for the base-two logarithm of
+        numbers of elements, although a much smaller type is suitable for
+        that.)
+
+        vDSP_Stride for differences of indices of elements (which of course
+        includes strides).
+*/
+typedef unsigned long vDSP_Length;
+#if defined __arm64__ && !defined __LP64__
+typedef long long     vDSP_Stride;
+#else
+typedef long          vDSP_Stride;
+#endif
+
+
+typedef struct vDSP_biquadm_SetupStruct {
+    double * _Nonnull coefficients;
+    double * _Nonnull targets;
+    double * _Nonnull delays;
+    bool * _Nonnull activeLevels;
+    size_t numChannels;
+    size_t numLevels;
+} vDSP_biquadm_SetupStruct;
+
+
+typedef struct vDSP_biquadm_SetupStruct *vDSP_biquadm_Setup;
+
+
+/*  vDSP_biquadm_CreateSetup allocates memory and prepares the coefficients for processing a
+    multi-channel cascaded biquad IIR filter.  Delay values are set to zero.
+
+    Unlike some other setup objects in vDSP, a vDSP_biquadm_Setup or
+    vDSP_biquadm_SetupD contains data that is modified during a vDSP_biquadm or
+    vDSP_biquadmD call, and it therefore may not be used more than once
+    simultaneously, as in multiple threads.
+ 
+    vDSP_biquadm_DestroySetup (for single) or vDSP_biquadm_DestroySetupD (for
+    double) frees the memory allocated by the corresponding create-setup
+    routine.
+*/
+extern __nullable vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeffs,
+                                                              vDSP_Length   numLevels,
+                                                              vDSP_Length   numChannels);
+
+
+extern void vDSP_biquadm_DestroySetup(vDSP_biquadm_Setup _Nonnull __setup);
+
+
+/*
+    vDSP_biquadm_ResetState (for float) or vDSP_biquadm_ResetStateD (for
+    double) sets the delay values of a biquadm setup object to zero.
+*/
+extern void vDSP_biquadm_ResetState(vDSP_biquadm_Setup _Nonnull __setup);
+
+
+
+/*
+    vDSP_biquadm_SetCoefficientsDouble will
+    update the filter coefficients within a valid vDSP_biquadm_Setup object.
+ */
+extern void vDSP_biquadm_SetCoefficientsDouble(
+                                               vDSP_biquadm_Setup _Nonnull                  __setup,
+                                               const double                       * _Nonnull __coeffs,
+    vDSP_Length                         __start_sec,
+    vDSP_Length                         __start_chn,
+    vDSP_Length                         __nsec,
+    vDSP_Length                         __nchn);
+
+
+
+/*
+    vDSP_biquadm_SetTargetsDouble will
+    set the target coefficients within a valid vDSP_biquadm_Setup object.
+ */
+extern void vDSP_biquadm_SetTargetsDouble(
+                                          vDSP_biquadm_Setup _Nonnull                  __setup,
+                                          const double                       * _Nonnull __targets,
+    float                               __interp_rate,
+    float                               __interp_threshold,
+    vDSP_Length                         __start_sec,
+    vDSP_Length                         __start_chn,
+    vDSP_Length                         __nsec,
+    vDSP_Length                         __nchn);
+
+
+
+/*
+    vDSP_biquadm_SetActiveFilters will set the overall active/inactive filter
+    state of a valid vDSP_biquadm_Setup object.
+ */
+extern void vDSP_biquadm_SetActiveFilters(vDSP_biquadm_Setup _Nonnull __setup,
+                                          const bool * _Nonnull __filter_states);
+
+
+
+
+/*  vDSP_biquadm (for float) or vDSP_biquadmD (for double) applies a
+    multi-channel biquadm IIR filter created with vDSP_biquadm_CreateSetup or
+    vDSP_biquadm_CreateSetupD, respectively.
+ */
+extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
+    const float * __nonnull * __nonnull __X, vDSP_Stride __IX,
+    float       * __nonnull * __nonnull __Y, vDSP_Stride __IY,
+    vDSP_Length              __N);
+    /*  These routines perform the same function as M calls to vDSP_biquad or
+        vDSP_biquadD, where M, the delay values, and the biquad setups are
+        derived from the biquadm setup:
+
+            for (m = 0; m < M; ++M)
+                vDSP_biquad(
+                    setup derived from vDSP_biquadm setup,
+                    delays derived from vDSP_biquadm setup,
+                    X[m], IX,
+                    Y[m], IY,
+                    N);
+    */
 
 #ifdef __cplusplus
 }

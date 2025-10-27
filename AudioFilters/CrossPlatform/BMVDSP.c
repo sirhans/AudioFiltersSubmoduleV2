@@ -6,7 +6,7 @@
 #include "BMVDSP.h"
 #include <math.h>
 #include "BMOSSystem.h"
-
+#include <arm_neon.h>
     
 void bDSP_vramp(const float *initialValue, const float *increment, float *output, size_t stride,
                 size_t numSamples) {
@@ -19,23 +19,48 @@ void bDSP_vramp(const float *initialValue, const float *increment, float *output
     }
 }
 
-void bDSP_vsmul(const float *V,
-                size_t strideV,
-                const float *S,
-                float *output,
-                size_t strideOutput,
-                size_t numSamples){
-    size_t outputI = 0;
-    size_t VI = 0;
+//void bDSP_vsmul(const float *V,
+//                size_t strideV,
+//                const float *S,
+//                float *output,
+//                size_t strideOutput,
+//                size_t numSamples){
+//    size_t outputI = 0;
+//    size_t VI = 0;
+//
+//    for (size_t c=0; c<numSamples; c++){
+//        output[outputI] = V[VI] * *S;
+//        outputI += strideOutput;
+//        VI += strideV;
+//    }
+//}
 
-    for (size_t c=0; c<numSamples; c++){
-        output[outputI] = V[VI] * *S;
-        outputI += strideOutput;
-        VI += strideV;
+void bDSP_vsmul(const float * _Nonnull A, size_t IA, const float* _Nonnull  B,  float * _Nonnull C, size_t IC, size_t N){
+    // only accept strides of 1
+    assert(IA == 1);
+    assert(IC == 1);
+
+    // copy the scalar B into a vector of 4 32 bit floats
+    const float32x4_t B4 = vdupq_n_f32(*B);
+
+    // multiply in groups of 4
+    size_t endSIMD = N - (N % 4);
+    size_t i=0;
+    for(; i < endSIMD; i += 4){
+        // load the next 4 floats from A
+        float32x4_t A4i = vld1q_f32(A + i);
+
+        // multiply them by B
+        float32x4_t C4i = vmulq_f32(A4i,B4);
+
+        // write out to C
+        vst1q_f32(C + i, C4i);
     }
+
+    // if there are some elements left back because N isn't divisible by 4, finish them up
+    for(; i < N; i++)
+        C[i] = A[i] * *B;
 }
-
-
 
 void bDSP_vmul(const float *A,
                size_t strideA,
@@ -1674,7 +1699,209 @@ bool bDSP_vacD(double* array1, double* array2, size_t length){
     return true;
 }
 
+        
+extern __nullable vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeffs,
+                                                              vDSP_Length numLevels,
+                                                              vDSP_Length numChannels){
+    vDSP_biquadm_Setup This = malloc(sizeof(vDSP_biquadm_SetupStruct));
+    
+    This->numLevels = numLevels;
+    This->numChannels = numChannels;
+    
+    This->coefficients = malloc(sizeof(double)*numLevels*numChannels*5);
+    This->targets = malloc(sizeof(double)*numLevels*numChannels*5);
+    This->delays = malloc(sizeof(double)*numLevels*numChannels*4);
+    This->activeLevels = malloc(sizeof(bool)*numLevels);
+    
+    // set all the filters active
+    for(size_t i=0; i<numLevels; i++) This->activeLevels[i] = true;
+    
+    // set the delays to zero
+    for(size_t i=0; i<numLevels*numChannels*4; i++)
+        This->delays[i] = 0.0;
+    
+    // copy the filter coefficients
+    memcpy(This->coefficients, coeffs, sizeof(double)*numLevels*numChannels*5);
+    
+    return This;
+}
+
+
+extern void vDSP_biquadm_DestroySetup(vDSP_biquadm_Setup _Nonnull __setup){
+    free(__setup->activeLevels);
+    free(__setup->delays);
+    free(__setup->targets);
+    free(__setup->coefficients);
+    free(__setup);
+}
+
+
+extern void vDSP_biquadm_ResetState(vDSP_biquadm_Setup _Nonnull __setup){
+    // set the delays to zero
+    for(size_t i=0; i<__setup->numLevels*__setup->numChannels*4; i++)
+        __setup->delays[i] = 0.0;
+}
+
+
+extern void vDSP_biquadm_SetCoefficientsDouble(vDSP_biquadm_Setup _Nonnull __setup,
+                                               const double * _Nonnull __coeffs,
+                                               vDSP_Length __start_sec,
+                                               vDSP_Length __start_chn,
+                                               vDSP_Length __nsec,
+                                               vDSP_Length __nchn){
+    // we force the user to update all the coefficients rather than just one
+    // filter at a time. We can change this later if necessary.
+    assert(__nchn == __setup->numChannels);
+    assert(__nsec == __setup->numLevels);
+    assert(__start_chn == 0);
+    assert(__start_sec == 0);
+    
+    // copy all the coefficients
+    memcpy(__setup->coefficients, __coeffs, sizeof(double)*__nsec*__nchn*5);
+}
+
+
+
+extern void vDSP_biquadm_SetTargetsDouble(vDSP_biquadm_Setup _Nonnull __setup,
+                                          const double * _Nonnull __targets,
+                                          float __interp_rate,
+                                          float __interp_threshold,
+                                          vDSP_Length __start_sec,
+                                          vDSP_Length __start_chn,
+                                          vDSP_Length __nsec,
+                                          vDSP_Length __nchn){
+    // we're not done implementing this yet. please don't call it.
+    assert(false);
+    
+    // we force the user to update all the coefficients rather than just one
+    // filter at a time. We can change this later if necessary.
+    assert(__nchn == __setup->numChannels);
+    assert(__nsec == __setup->numLevels);
+    assert(__start_chn == 0);
+    assert(__start_sec == 0);
+    
+    // copy all the coefficient targets
+    memcpy(__setup->targets, __targets, sizeof(double)*__nsec*__nchn*5);
+}
+
+
+/*
+    vDSP_biquadm_SetActiveFilters will set the overall active/inactive filter
+    state of a valid vDSP_biquadm_Setup object.
+ */
+extern void vDSP_biquadm_SetActiveFilters(vDSP_biquadm_Setup _Nonnull __setup,
+                                          const bool * _Nonnull __filter_states){
+    memcpy(__setup->activeLevels, __filter_states, sizeof(bool)*__setup->numLevels);
+}
+
+
+
+void biquadSingleChannel(const float *input, float *output, double *coefficients, double *delays, size_t numSamples){
+    // we wrote this function using standard c but then re-wrote it using arm
+    // neon intrinsics, leaving the standard c code in the comments.
+    
+    double b0 = coefficients[0];
+//    double b1 = coefficients[1];
+//    double b2 = coefficients[2];
+//    double a1 = coefficients[3];
+//    double a2 = coefficients[4];
+    // arm neon SIMD version of the commented lines above
+    float64x2_t b12 = {coefficients[1],coefficients[2]};
+    float64x2_t a12 = {-coefficients[3],-coefficients[4]};
+    
+    // init delays
+//    double zb1 = delays[0];
+//    double zb2 = delays[1];
+//    double za1 = delays[2];
+//    double za2 = delays[3];
+    // arm neon SIMD version of the commented lines above
+    float64x2_t zb12 = {delays[0], delays[1]};
+    float64x2_t za12 = {delays[2], delays[3]};
+
+    // process the filter
+    for (size_t n = 0; n < numSamples; n++){
+        double zb0 = input[n];
+        
+//        za0 = + b0 * zb0
+//              + b1 * zb1
+//              + b2 * zb2
+//              - a1 * za1
+//              - a2 * za2;
+        // arm neon SIMD version of the commented lines above
+        float64x2_t acc = vdupq_n_f64(0.0); // acc = {0,0}
+        acc = vfmaq_f64(acc, b12, zb12); // acc[0] += b12[0] * zb12[0]; acc[1] += b12[1] * zb12[1];
+        acc = vfmaq_f64(acc, a12, za12); // acc[0] += a12[0] * ab12[0]; acc[1] += a12[1] * ab12[1];
+        double za0 = vaddvq_f64(acc) + (zb0 * b0); // za0 = acc[0] + acc[1] + (zb0 * b0);
+        
+        output[n] = (float)za0;
+        
+//        zb2 = zb1;
+//        zb1 = zb0;
+//        za2 = za1;
+//        za1 = za0;
+        // arm neon SIMD version of the commented lines above
+        zb12 = (float64x2_t){zb0, vgetq_lane_f64(zb12, 0)};
+        za12 = (float64x2_t){za0, vgetq_lane_f64(za12, 0)};
+    }
+    
+    // save delay data for next time
+//    delays[0] = zb1;
+//    delays[1] = zb2;
+//    delays[2] = za1;
+//    delays[3] = za2;
+    // arm neon SIMD version of the commented lines above
+    delays[0] = vgetq_lane_f64(zb12,0);
+    delays[1] = vgetq_lane_f64(zb12,1);
+    delays[2] = vgetq_lane_f64(za12,0);
+    delays[3] = vgetq_lane_f64(za12,1);
+}
+
+
+
+/*  vDSP_biquadm applies a
+    multi-channel biquadm IIR filter created with vDSP_biquadm_CreateSetup.
+ */
+extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
+    const float * __nonnull * __nonnull __X, vDSP_Stride __IX,
+    float       * __nonnull * __nonnull __Y, vDSP_Stride __IY,
+                         vDSP_Length              __N){
+    // force the strides to be 1
+    assert(__IX == 1);
+    assert(__IY == 1);
+    
+    // for each channel
+    for(size_t cnl = 0; cnl < __Setup->numChannels; cnl++){
+        const float *input  = __X[cnl];
+        float *output = __Y[cnl];
+        bool firstActiveLevel = true;
+        
+        // process each level of the filter
+        for (size_t lvl=0; lvl < __Setup->numLevels; lvl++){
+            // get simple pointers to the data we need to pass on to the biquad process function
+            double *coefficients = __Setup->coefficients + lvl*__Setup->numChannels*5 + cnl*5;
+            double *delays       = __Setup->delays       + lvl*__Setup->numChannels*4 + cnl*4;
             
+            // if the filter on this level is active
+            if(__Setup->activeLevels[lvl]){
+                // if this is the first active level on this channel, process from input to output
+                if (firstActiveLevel) {
+                    biquadSingleChannel(input, output, coefficients, delays, __N);
+                    firstActiveLevel = false;
+                }
+                // if this is not the first active level, process output in place
+                else
+                    biquadSingleChannel(output, output, coefficients, delays, __N);
+            }
+            
+            // if none of the filters was active, copy input to output without filtering
+            if (firstActiveLevel)
+                memcpy(output, input, sizeof(float)*__N);
+        }
+    }
+}
+
+
+
 
         
     
