@@ -1806,8 +1806,8 @@ void biquadSingleChannel(const float *input, float *output, double *coefficients
 //    double a1 = coefficients[3];
 //    double a2 = coefficients[4];
     // arm neon SIMD version of the commented lines above
-    float64x2_t b12 = {coefficients[1],coefficients[2]};
-    float64x2_t a12 = {-coefficients[3],-coefficients[4]};
+    my_float64x2_t b12 = {coefficients[1],coefficients[2]};
+    my_float64x2_t a12 = {-coefficients[3],-coefficients[4]};
     
     // init delays
 //    double zb1 = delays[0];
@@ -1815,8 +1815,8 @@ void biquadSingleChannel(const float *input, float *output, double *coefficients
 //    double za1 = delays[2];
 //    double za2 = delays[3];
     // arm neon SIMD version of the commented lines above
-    float64x2_t zb12 = {delays[0], delays[1]};
-    float64x2_t za12 = {delays[2], delays[3]};
+    my_float64x2_t zb12 = {delays[0], delays[1]};
+    my_float64x2_t za12 = {delays[2], delays[3]};
 
     // process the filter
     for (size_t n = 0; n < numSamples; n++){
@@ -1828,10 +1828,10 @@ void biquadSingleChannel(const float *input, float *output, double *coefficients
 //              - a1 * za1
 //              - a2 * za2;
         // arm neon SIMD version of the commented lines above
-        float64x2_t acc = vdupq_n_f64(0.0); // acc = {0,0}
-        acc = vfmaq_f64(acc, b12, zb12); // acc[0] += b12[0] * zb12[0]; acc[1] += b12[1] * zb12[1];
-        acc = vfmaq_f64(acc, a12, za12); // acc[0] += a12[0] * ab12[0]; acc[1] += a12[1] * ab12[1];
-        double za0 = vaddvq_f64(acc) + (zb0 * b0); // za0 = acc[0] + acc[1] + (zb0 * b0);
+        my_float64x2_t acc = my_vdupq_n_f64(0.0); // acc = {0,0}
+        acc = my_vfmaq_f64(acc, b12, zb12); // acc[0] += b12[0] * zb12[0]; acc[1] += b12[1] * zb12[1];
+        acc = my_vfmaq_f64(acc, a12, za12); // acc[0] += a12[0] * ab12[0]; acc[1] += a12[1] * ab12[1];
+        double za0 = my_vaddvq_f64(acc) + (zb0 * b0); // za0 = acc[0] + acc[1] + (zb0 * b0);
         
         output[n] = (float)za0;
         
@@ -1840,8 +1840,8 @@ void biquadSingleChannel(const float *input, float *output, double *coefficients
 //        za2 = za1;
 //        za1 = za0;
         // arm neon SIMD version of the commented lines above
-        zb12 = (float64x2_t){zb0, vgetq_lane_f64(zb12, 0)};
-        za12 = (float64x2_t){za0, vgetq_lane_f64(za12, 0)};
+        zb12 = (my_float64x2_t){zb0, my_vgetq_lane_f64(zb12, 0)};
+        za12 = (my_float64x2_t){za0, my_vgetq_lane_f64(za12, 0)};
     }
     
     // save delay data for next time
@@ -1850,10 +1850,10 @@ void biquadSingleChannel(const float *input, float *output, double *coefficients
 //    delays[2] = za1;
 //    delays[3] = za2;
     // arm neon SIMD version of the commented lines above
-    delays[0] = vgetq_lane_f64(zb12,0);
-    delays[1] = vgetq_lane_f64(zb12,1);
-    delays[2] = vgetq_lane_f64(za12,0);
-    delays[3] = vgetq_lane_f64(za12,1);
+    delays[0] = my_vgetq_lane_f64(zb12,0);
+    delays[1] = my_vgetq_lane_f64(zb12,1);
+    delays[2] = my_vgetq_lane_f64(za12,0);
+    delays[3] = my_vgetq_lane_f64(za12,1);
 }
 
 
