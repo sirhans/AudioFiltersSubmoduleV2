@@ -16,6 +16,10 @@
 #ifndef BMDither_h
 #define BMDither_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include "BMMultiLevelBiquad.h"
 #include "BMMultiLevelSVF.h"
@@ -51,5 +55,9 @@ void BMDither_processStereo(BMDither *This, float *inL, float *inR, float *outL,
  *BMDither_free
  */
 void BMDither_free(BMDither *This);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* BMDither_h */

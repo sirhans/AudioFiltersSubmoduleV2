@@ -11,7 +11,7 @@
 #ifdef __APPLE__
     #define USE_ACCELERATE 1
     //For testing purpose only
-    #define USE_NEON 1
+    #define USE_NEON 0
 #else
     #define USE_ACCELERATE 0
     //Never change this
