@@ -19,9 +19,9 @@
 #else
     #include "../AudioFilters/CrossPlatform/BMVDSP.h"  // your custom vDSP replacement
 
-//    #if defined(__ARM_NEON) || defined(__ARM_NEON__)
-//    #include <arm_neon.h>
-//    #else
+    #if defined(__aarch64__)
+    #include <arm_neon.h>
+    #else
     typedef struct { double val[2]; } float64x2_t;
     static inline float64x2_t vdupq_n_f64(double x) {
         float64x2_t v = { { x, x } };
@@ -43,7 +43,7 @@
         return v.val[lane];
     }
 
-//    #endif
+    #endif
 
     #define vDSP_vsmul bDSP_vsmul
     #define vDSP_vdbcon bDSP_vdbcon
