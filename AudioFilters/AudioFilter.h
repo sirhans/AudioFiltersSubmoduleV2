@@ -50,8 +50,8 @@
 
     static inline my_float64x2_t my_vfmaq_f64(my_float64x2_t a, my_float64x2_t b, my_float64x2_t c) {
         my_float64x2_t v;
-        v.val[0] = a.val[0] + b.val[0] * c.val[0];
-        v.val[1] = a.val[1] + b.val[1] * c.val[1];
+        v.val[0] = a.val[0] + (b.val[0] * c.val[0]);
+        v.val[1] = a.val[1] + (b.val[1] * c.val[1]);
         return v;
     }
 
