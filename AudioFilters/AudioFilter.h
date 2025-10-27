@@ -9,19 +9,39 @@
 #define AudioFilter_h
 
 #ifdef __APPLE__
-    #define USE_ACCELERATE 0
+    #define USE_ACCELERATE 1
+    //For testing purpose only
+    #define USE_NEON 1
 #else
     #define USE_ACCELERATE 0
+    //Never change this
+    #define USE_NEON 1
 #endif
 
 #if USE_ACCELERATE
     #include <Accelerate/Accelerate.h>
+    #include <arm_neon.h>
+
+    #define my_float64x2_t float64x2_t
+    #define my_float64x2_t float64x2_t
+    #define my_vdupq_n_f64 vdupq_n_f64
+    #define my_vfmaq_f64 vfmaq_f64
+    #define my_vaddvq_f64 vaddvq_f64
+    #define my_vgetq_lane_f64 vgetq_lane_f64
 #else
     #include "../AudioFilters/CrossPlatform/BMVDSP.h"  // your custom vDSP replacement
 
-//    #if defined(__aarch64__)
-//    #include <arm_neon.h>
-//    #else
+#if defined(__aarch64__) && USE_NEON
+    #include <arm_neon.h>
+    
+    #define my_float64x2_t float64x2_t
+    #define my_float64x2_t float64x2_t
+    #define my_vdupq_n_f64 vdupq_n_f64
+    #define my_vfmaq_f64 vfmaq_f64
+    #define my_vaddvq_f64 vaddvq_f64
+    #define my_vgetq_lane_f64 vgetq_lane_f64
+
+#else
     typedef struct { double val[2]; } my_float64x2_t;
     static inline my_float64x2_t my_vdupq_n_f64(double x) {
         my_float64x2_t v = { { x, x } };
@@ -43,7 +63,7 @@
         return v.val[lane];
     }
 
-//    #endif
+#endif
 
     #define vDSP_vsmul bDSP_vsmul
     #define vDSP_vdbcon bDSP_vdbcon
