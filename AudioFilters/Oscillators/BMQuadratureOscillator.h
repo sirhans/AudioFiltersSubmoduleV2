@@ -40,23 +40,24 @@
 //  for any purpose, without restrictions.
 //
 
-#ifndef THERAPYFILTER_BMQUADRATUREOSCILLATOR_H
-#define THERAPYFILTER_BMQUADRATUREOSCILLATOR_H
+#ifndef BMQuadratureOscillator_h
+#define BMQuadratureOscillator_h
 
-//#include <stddef.h>
-//#include <stdbool.h>
-#include "../AudioFilter.h"
-#include "../MathUtilities/BM2x2Matrix.h"
+//#include "BM2x2Matrix.h"
+#include <stddef.h>
+#include <stdbool.h>
+#include <simd/simd.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
+
 typedef struct BMQuadratureOscillator {
-    BM2x2Matrix m, mPending;
-    BMVector2 rq;
-    double sampleRate, oscFreq;
+	simd_double2x2 m, mPending;
+	simd_double2 rq;
+	double sampleRate, oscFreq;
 } BMQuadratureOscillator;
 
 
@@ -72,8 +73,8 @@ typedef struct BMQuadratureOscillator {
  * @param sampleRate sample rate in Hz
  */
 void BMQuadratureOscillator_init(BMQuadratureOscillator *This,
-                                 float fHz,
-                                 float sampleRate);
+								 float fHz,
+								 float sampleRate);
 
 
 
@@ -122,9 +123,9 @@ void BMQuadratureOscillator_setTimeInSamples(BMQuadratureOscillator *This, size_
  *
  */
 void BMQuadratureOscillator_process(BMQuadratureOscillator *This,
-                                    float* r,
-                                    float* q,
-                                    size_t numSamples);
+									float* r,
+									float* q,
+									size_t numSamples);
 
 
 
@@ -141,10 +142,10 @@ void BMQuadratureOscillator_process(BMQuadratureOscillator *This,
  *
  */
 void BMQuadratureOscillator_volumeEnvelope4Stereo(BMQuadratureOscillator *This,
-                                                  float** buffersL,
-                                                  float** buffersR,
-                                                  bool* zeros,
-                                                  size_t numSamples);
+												  float** buffersL,
+												  float** buffersR,
+												  bool* zeros,
+												  size_t numSamples);
 
 
 
@@ -158,16 +159,16 @@ void BMQuadratureOscillator_volumeEnvelope4Stereo(BMQuadratureOscillator *This,
  * @param numSamples number of samples to skip
  */
 void BMQuadratureOscillator_advance(BMQuadratureOscillator *This,
-                                    float *r,
-                                    float *q,
-                                    size_t numSamples);
+									float *r,
+									float *q,
+									size_t numSamples);
 
 
 
 
-void BMQuadratureOscillator_initMatrix(BM2x2Matrix *m,
-                                       double frequency,
-                                       double sampleRate);
+void BMQuadratureOscillator_initMatrix(simd_double2x2* m,
+									   double frequency,
+									   double sampleRate);
 
 
 
@@ -176,5 +177,6 @@ void BMQuadratureOscillator_initMatrix(BM2x2Matrix *m,
 }
 #endif
 
+#endif /* BMQuadratureOscillator_h */
 
-#endif //THERAPYFILTER_BMQUADRATUREOSCILLATOR_H
+
