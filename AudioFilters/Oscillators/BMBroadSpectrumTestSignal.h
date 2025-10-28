@@ -2,6 +2,8 @@
 //  BMBroadSpectrumTestSignal.h
 //  AudioFiltersXcodeProject
 //
+//  Generates sound using an array of sine wave oscillators
+//
 //  Created by hans anderson on 7/23/25.
 //  We release this file into the public domain.
 //
