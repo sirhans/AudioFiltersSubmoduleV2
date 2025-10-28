@@ -31,17 +31,17 @@ static inline float32x2x2_t BM2x2Matrix_rotationMatrix(float theta){
 
 
 
-///*!
-// *BM2x2MatrixD_rotationMatrix
-// *
-// * @abstract returns a 2x2 rotation matrix with angle theta
-// */
-//static inline float64x2x2_t BM2x2MatrixD_rotationMatrix(double theta){
-//	float64x2_t column0 = {cos(theta), sin(theta)};
-//	float64x2_t column1 = {-sin(theta),cos(theta)};
-//	float64x2x2_t R = { column0, column1 };;
-//	return R;
-//}
+/*!
+ *BM2x2MatrixD_rotationMatrix
+ *
+ * @abstract returns a 2x2 rotation matrix with angle theta
+ */
+static inline float64x2x2_t BM2x2MatrixD_rotationMatrix(double theta){
+	float64x2_t column0 = {cos(theta), sin(theta)};
+	float64x2_t column1 = {-sin(theta),cos(theta)};
+	float64x2x2_t R = { column0, column1 };;
+	return R;
+}
 
 
 
