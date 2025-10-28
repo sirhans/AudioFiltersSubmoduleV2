@@ -21,7 +21,7 @@
 //
 
 
-static inline float32x2x2_t BM2x2Matrix_rotationMatrix(float theta){
+inline float32x2x2_t BM2x2Matrix_rotationMatrix(float theta){
 	float32x2_t column0 = {cosf(theta), sinf(theta)};
 	float32x2_t column1 = {-sinf(theta),cosf(theta)};
 	float32x2x2_t R = { column0, column1 };
@@ -36,7 +36,7 @@ static inline float32x2x2_t BM2x2Matrix_rotationMatrix(float theta){
  *
  * @abstract returns a 2x2 rotation matrix with angle theta
  */
-static inline float64x2x2_t BM2x2MatrixD_rotationMatrix(double theta){
+inline float64x2x2_t BM2x2MatrixD_rotationMatrix(double theta){
 	float64x2_t column0 = {cos(theta), sin(theta)};
 	float64x2_t column1 = {-sin(theta),cos(theta)};
 	float64x2x2_t R = { column0, column1 };;

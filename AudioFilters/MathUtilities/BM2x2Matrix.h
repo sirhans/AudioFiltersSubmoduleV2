@@ -33,7 +33,7 @@ extern "C" {
  *
  * @abstract returns a 2x2 rotation matrix with angle theta
  */
-static inline float32x2x2_t BM2x2Matrix_rotationMatrix(float theta);
+float32x2x2_t BM2x2Matrix_rotationMatrix(float theta);
 
 
 /*!
@@ -41,7 +41,7 @@ static inline float32x2x2_t BM2x2Matrix_rotationMatrix(float theta);
  *
  * @abstract returns a 2x2 rotation matrix with angle theta
  */
-static inline float64x2x2_t BM2x2MatrixD_rotationMatrix(double theta);
+float64x2x2_t BM2x2MatrixD_rotationMatrix(double theta);
 
 
 
