@@ -88,14 +88,14 @@ extern "C" {
 	}
 	
 
-	
+TODO: test this to make sure the result is the same as simd_mul(M,v)
 	static inline float64x2_t neon_f64_Mvmul(float64x2x2_t M, float64x2_t v) {
 		float64x2_t r = vmulq_n_f64(M.val[0], vgetq_lane_f64(v, 0));
 		r = vfmaq_n_f64(r, M.val[1], vgetq_lane_f64(v, 1));
 		return r;
 	}
 	
-	
+TODO: test this to make sure the result is the same as simd_equal(A,B)
 	static inline bool neon_f64_2x2_equal(float64x2x2_t A, float64x2x2_t B) {
 		// Compare each column element-wise
 		uint64x2_t cmp0 = vceqq_f64(A.val[0], B.val[0]);
