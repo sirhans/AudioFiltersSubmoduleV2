@@ -7,7 +7,7 @@
 //
 
 #include "BMSpectrumManager.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #import "BMRMSPower.h"
 //#import "MyConstants.h"
 #import "BMSpectrum.h"

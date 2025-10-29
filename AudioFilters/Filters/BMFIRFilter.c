@@ -16,7 +16,7 @@ extern "C" {
 #include <assert.h>
 #include "BMFIRFilter.h"
 #include "BMSymmetricConv.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
     
     
     /*

@@ -7,7 +7,7 @@
 //
 
 #include "BMWhiteNoiseOscillator.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 
 void BMWhiteNoiseOscillator_init(BMWhiteNoiseOscillator *This){

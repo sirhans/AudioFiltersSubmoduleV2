@@ -12,8 +12,8 @@
 #define BMMultiLevelBiquad_h
 
 #include <stdio.h>
-#include "../AudioFilter.h"
-#include "../OtherEffects/BMSmoothGain.h"
+#include <Accelerate/Accelerate.h>
+#include "BMSmoothGain.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,15 +21,20 @@ extern "C" {
 
 typedef struct BMMultiLevelBiquad {
     // dynamic memory
-    vDSP_biquadm_Setup filterSetup;
-    double *coefficients_d;
-    bool *activeLevels;
+    vDSP_biquadm_Setup multiChannelFilterSetup;
+    vDSP_biquad_Setup singleChannelFilterSetup;
+    float* monoDelays;
+    double* coefficients_d;
+    // float* coefficients_f;
     
     // static memory
+    //float currentGain;
+    //float desiredGain;
     size_t numLevels;
     size_t numChannels;
     double sampleRate;
-    bool needsUpdate, useSmoothUpdate, needUpdateActiveLevels, needsClearState; //useRealTimeUpdate, useBiquadm,
+    bool needsUpdate, useRealTimeUpdate, useBiquadm, useSmoothUpdate, needUpdateActiveLevels, needsClearState;
+    bool *activeLevels;
     BMSmoothGain gain, gain2;
 } BMMultiLevelBiquad;
 
@@ -217,16 +222,16 @@ void BMMultiLevelBiquad_setHighPass12db(BMMultiLevelBiquad* This, double fc, siz
  *BMMultiLevelBiquad_setLowpass18db
  */
 void BMMultiLevelBiquad_setLowpass18db(BMMultiLevelBiquad *This,
-                                        double fc,
-                                        size_t firstLevel);
+										double fc,
+										size_t firstLevel);
 
 
 /*!
  *BMMultiLevelBiquad_setHighpass18db
  */
 void BMMultiLevelBiquad_setHighpass18db(BMMultiLevelBiquad *This,
-                                        double fc,
-                                        size_t firstLevel);
+										double fc,
+										size_t firstLevel);
 
 
 /*!

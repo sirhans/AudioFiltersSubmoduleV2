@@ -7,8 +7,8 @@
 //
 
 #include "BMInterleaver.h"
-#include "../AudioFilter.h"
 #include <Accelerate/Accelerate.h>
+
 
 /*!
  *BMDeInterleave

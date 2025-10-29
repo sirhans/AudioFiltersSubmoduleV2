@@ -7,7 +7,7 @@
 //
 
 #include "BMSincDownsampler.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 void BMSincDownsampler_genKernel(BMSincDownsampler *This);
 

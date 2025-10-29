@@ -9,7 +9,7 @@
 #ifndef BMAsymptoticLimiter_h
 #define BMAsymptoticLimiter_h
 
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include <stdio.h>
 
 /*!

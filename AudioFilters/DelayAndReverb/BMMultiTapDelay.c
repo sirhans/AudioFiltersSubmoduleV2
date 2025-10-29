@@ -7,7 +7,7 @@
 //
 
 #include "BMMultiTapDelay.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include <stdlib.h>
 #include "Constants.h"
 

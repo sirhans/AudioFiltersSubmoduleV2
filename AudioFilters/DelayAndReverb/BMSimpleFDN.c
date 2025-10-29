@@ -9,7 +9,7 @@
 #include "BMSimpleFDN.h"
 #include <stdlib.h>
 #include <assert.h>
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "BMFastHadamard.h"
 #include "BMIntegerMath.h"
 

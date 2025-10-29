@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "../AudioFilter.h"
 #include <Accelerate/Accelerate.h>
 #include "Constants.h"
 
@@ -52,9 +51,9 @@ void BMStereoLagTime_destroy(BMStereoLagTime* This){
     BMSmoothDelay_destroy(&This->delayRight);
 
     free(This->strideBufferL);
-    This->strideBufferL = NULL;
+    This->strideBufferL = nil;
     free(This->strideBufferR);
-    This->strideBufferR = NULL;
+    This->strideBufferR = nil;
 }
 
 void BMStereoLagTime_setDelayLeft(BMStereoLagTime* This,size_t delaySample,bool now){

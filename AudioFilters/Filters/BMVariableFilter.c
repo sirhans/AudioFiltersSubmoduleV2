@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 #include "BMVariableFilter.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 //    void BMReleaseFilter_setCutoff(BMReleaseFilter *This, float fc){
 //        This->fc = fc;

@@ -13,7 +13,7 @@
 
 #include "BMDPWOscillator.h"
 #include <math.h>
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "Constants.h"
 #include "BMIntegerMath.h"
 

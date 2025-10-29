@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "BMMultiLevelBiquad.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 typedef struct BMBinauralSynthesis {
     BMMultiLevelBiquad filter;

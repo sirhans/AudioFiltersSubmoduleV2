@@ -10,9 +10,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "Constants.h"
-#include "Accelerate/Accelerate.h"
 
 void BMPitchShiftDelay_init(BMPitchShiftDelay* This,float duration,size_t delayRange,size_t maxDelayRange,size_t sampleRate,bool startAtMaxRange,bool useFilter){
     //init buffer
@@ -81,17 +80,17 @@ void BMPitchShiftDelay_destroy(BMPitchShiftDelay* This){
     BMSmoothDelay_destroy(&This->delayRight);
     
     free(This->wetBufferL);
-    This->wetBufferL = NULL;
+    This->wetBufferL = nil;
     free(This->wetBufferR);
-    This->wetBufferR = NULL;
+    This->wetBufferR = nil;
     free(This->tempBufferL);
-    This->tempBufferL = NULL;
+    This->tempBufferL = nil;
     free(This->tempBufferR);
-    This->tempBufferR = NULL;
+    This->tempBufferR = nil;
     free(This->strideBufferL);
-    This->strideBufferL = NULL;
+    This->strideBufferL = nil;
     free(This->strideBufferR);
-    This->strideBufferR = NULL;
+    This->strideBufferR = nil;
     
     if(This->useFilter){
         BMMultiLevelBiquad_free(&This->midBandFilter);

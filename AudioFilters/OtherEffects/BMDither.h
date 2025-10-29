@@ -16,15 +16,11 @@
 #ifndef BMDither_h
 #define BMDither_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdio.h>
-#include "../Filters/BMMultiLevelBiquad.h"
-#include "../Filters/BMMultiLevelSVF.h"
+#include "BMMultiLevelBiquad.h"
+#include "BMMultiLevelSVF.h"
 #include "BMSmoothSwitch.h"
-#include "../Oscillators/BMWhiteNoiseOscillator.h"
+#include "BMWhiteNoiseOscillator.h"
 
 typedef enum {BMDITHER_16} DitherBitDepth;
 
@@ -55,9 +51,5 @@ void BMDither_processStereo(BMDither *This, float *inL, float *inR, float *outL,
  *BMDither_free
  */
 void BMDither_free(BMDither *This);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* BMDither_h */

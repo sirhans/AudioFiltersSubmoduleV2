@@ -10,7 +10,9 @@
 
 #include "BMSFM.h"
 #include "Constants.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
+
+
 
 
 void BMSFM_init(BMSFM *This, size_t inputLength){

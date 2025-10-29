@@ -8,7 +8,7 @@
 
 #include "BMSmoothDelay.h"
 #include "Constants.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 void BMSmoothDelay_prepareLGIBuffer(BMSmoothDelay* This,size_t bufferSize);
 void BMSmoothDelay_updateDelaySpeed(BMSmoothDelay* This,float speed);
@@ -75,11 +75,11 @@ void BMSmoothDelay_destroy(BMSmoothDelay* This){
     TPCircularBufferCleanup(&This->buffer);
     
     free(This->strideBuffer);
-    This->strideBuffer = NULL;
+    This->strideBuffer = nil;
     
     
     free(This->lgiBuffer);
-    This->lgiBuffer = NULL;
+    This->lgiBuffer = nil;
     
     BMLagrangeInterpolation_destroy(&This->lgInterpolation);
 }

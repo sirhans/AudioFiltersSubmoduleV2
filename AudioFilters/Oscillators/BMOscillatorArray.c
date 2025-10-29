@@ -8,11 +8,8 @@
 
 #include "BMOscillatorArray.h"
 #include "BMQuadratureOscillator.h"
-#include "../AudioFilter.h"
 #include <Accelerate/Accelerate.h>
 #include <stdlib.h>
-//#include "simd/simd.h"
-#include <arm_neon.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,18 +50,14 @@ extern "C" {
         // initialize rotation matrices and energy store values
         for(size_t i=0; i < length; i++){
             // init a matrix that rotates at the specified frequency
-            float64x2x2_t m;
+            simd_double2x2 m;
             BMQuadratureOscillator_initMatrix(&m, frequency[i], sampleRate);
             
             // copy the matrix values into the arrays
-//			This->m11[i] = m.columns[0][0]; // m.m11;
-			This->m11[i] = vgetq_lane_f64(m.val[0],0); // m.m11;
-//			This->m12[i] = m.columns[0][1]; // m.m12;
-			This->m12[i] = vgetq_lane_f64(m.val[0],1); // m.m12;
-//			This->m21[i] = m.columns[1][0]; // m.m21;
-			This->m21[i] = vgetq_lane_f64(m.val[1],0); // m.m21;
-//			This->m22[i] = m.columns[1][1]; // m.m22;
-			This->m22[i] = vgetq_lane_f64(m.val[1],1); // m.m22;
+			This->m11[i] = m.columns[0][0]; // m.m11;
+			This->m12[i] = m.columns[0][1]; // m.m12;
+			This->m21[i] = m.columns[1][0]; // m.m21;
+			This->m22[i] = m.columns[1][1]; // m.m22;
     
             // set initial values at the specified magnitudes and phases
             This->r[i] = magnitude[i]*sinf(phase[i]);

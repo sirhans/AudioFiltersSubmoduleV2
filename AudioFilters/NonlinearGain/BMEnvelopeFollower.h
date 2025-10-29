@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-//#include "BMDynamicSmoothingFilter.h"
+#include "BMDynamicSmoothingFilter.h"
 
 #ifdef __cplusplus
 extern "C" {

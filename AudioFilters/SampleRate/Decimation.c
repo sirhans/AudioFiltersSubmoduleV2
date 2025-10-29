@@ -7,7 +7,7 @@
 //
 
 #include "Decimation.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 
 void maxDecimation(const float* input, float* output, size_t N, size_t outputLength){

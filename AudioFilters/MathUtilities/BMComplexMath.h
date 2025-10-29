@@ -11,8 +11,8 @@
 #ifndef ComplexMath_h
 #define ComplexMath_h
 
-#include "../AudioFilter.h"
-#include "../Constants.h"
+#include <Accelerate/Accelerate.h>
+#include "Constants.h"
 
 #ifdef __cplusplus
 extern "C" {

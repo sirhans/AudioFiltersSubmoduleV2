@@ -14,7 +14,7 @@ extern "C" {
 	
 #include "BMNoiseGate.h"
 #include "BMEnvelopeFollower.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 	
 	
 #define BM_NOISE_GATE_DEFAULT_ATTACK_TIME 0.001

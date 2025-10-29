@@ -9,7 +9,7 @@
 //
 
 #include "BMRMSPower.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 float BMRMSPower_process(const float* input,size_t processSample){
     float sumSquare = 0;

@@ -11,7 +11,10 @@
 #include <assert.h>
 #include "BMIntegerMath.h"
 #include "Constants.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
+
+
+
 
 
 /*

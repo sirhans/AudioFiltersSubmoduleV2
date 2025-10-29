@@ -9,7 +9,7 @@
 //
 
 #include "BMTriangleLFO.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #define BMTriangleLFO_PARAMETER_UPDATE_TIME_SECONDS 1.0
 
 

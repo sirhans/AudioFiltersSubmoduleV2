@@ -12,7 +12,6 @@
 #define BMVectorOps_h
 
 #include <MacTypes.h>
-#include "../AudioFilter.h"
 #include <Accelerate/Accelerate.h>
 
 // 256 bit vectors

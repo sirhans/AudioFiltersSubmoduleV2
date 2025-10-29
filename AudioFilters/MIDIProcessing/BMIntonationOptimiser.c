@@ -10,7 +10,7 @@
 #include <limits.h>
 #include "BMIntonationOptimiser.h"
 #include "BMMIDITranslation.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 #define BMINTONATION_ARRAY_LENGTH 128
 #define BMINTONATION_TOLERANCE 0.16 // tuning tolerance as a fraction of 1 MIDI note

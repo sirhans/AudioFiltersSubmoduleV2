@@ -46,8 +46,7 @@
 //#include "BM2x2Matrix.h"
 #include <stddef.h>
 #include <stdbool.h>
-//#include <simd/simd.h>
-#include <arm_neon.h>
+#include <simd/simd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,8 +55,8 @@ extern "C" {
 
 
 typedef struct BMQuadratureOscillator {
-	float64x2x2_t m, mPending;
-	float64x2_t rq;
+	simd_double2x2 m, mPending;
+	simd_double2 rq;
 	double sampleRate, oscFreq;
 } BMQuadratureOscillator;
 
@@ -167,9 +166,9 @@ void BMQuadratureOscillator_advance(BMQuadratureOscillator *This,
 
 
 
-void BMQuadratureOscillator_initMatrix(float64x2x2_t* m,
+void BMQuadratureOscillator_initMatrix(simd_double2x2* m,
 									   double frequency,
-									   double sampleRate);
+                                       double sampleRate);
 
 
 

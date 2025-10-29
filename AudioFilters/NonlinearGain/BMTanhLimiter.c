@@ -7,7 +7,7 @@
 //
 
 #include "BMTanhLimiter.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include <assert.h>
 #include <simd/simd.h>
 

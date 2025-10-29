@@ -17,7 +17,7 @@ extern "C" {
 #ifndef BMMidSide_h
 #define BMMidSide_h
 
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
     
     /*
      * convert 

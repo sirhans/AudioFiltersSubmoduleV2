@@ -9,9 +9,8 @@
 #include "BMBroadSpectrumTestSignal.h"
 #include "BMUnitConversion.h"
 #include <stdlib.h>
-#include "../AudioFilter.h"
-#include "Constants.h"
 #include <Accelerate/Accelerate.h>
+#include "Constants.h"
 
 
 void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,

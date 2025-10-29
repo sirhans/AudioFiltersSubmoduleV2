@@ -6,7 +6,7 @@
 //  Copyright © 2020 BlueMangoo. All rights reserved.
 //
 
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "BMAttackShaper.h"
 #include "Constants.h"
 //#include "fastpow.h"

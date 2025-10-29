@@ -3,7 +3,7 @@
 //  BMAudioFilters
 //
 //  Created by Hans on 14/9/17.
-//  We release this file into the public domain
+//  Anyone can use this file without restrictions
 //
 
 #include <stddef.h>

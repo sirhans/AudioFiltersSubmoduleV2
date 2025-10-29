@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include "BM2x2Matrix.h"
-#include "simd/simd.h"
 
 typedef struct BM2x2MatrixMixer {
 	simd_float2x2 M;

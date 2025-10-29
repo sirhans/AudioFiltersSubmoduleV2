@@ -9,7 +9,7 @@
 #include "BMMeasurementBuffer.h"
 #include "Constants.h"
 #include <stdlib.h>
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 
 void BMMeasurementBuffer_init(BMMeasurementBuffer *This, size_t lengthInSamples){

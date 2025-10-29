@@ -8,7 +8,7 @@
 #include "BMMultiLevelSVF.h"
 #include <stdlib.h>
 #include <assert.h>
-#include "../Constants.h"
+#include "Constants.h"
 
 //#define SVF_PARAM_COUNT 3
 #define SVF_GOLDEN_RATIO (1.0 + sqrt(5.0)) / 2.0
@@ -43,7 +43,7 @@ void BMMultiLevelSVF_init(BMMultiLevelSVF *This,
 	This->shouldUpdateParam = false;
 	This->updateImmediately = false;
 	This->needsClearStateVariables = false;
-//	This->lock = OS_UNFAIR_LOCK_INIT;
+	This->lock = OS_UNFAIR_LOCK_INIT;
 	//If stereo -> we need totalnumlevel = numlevel *2
 	size_t totalNumLevels = numLevels * This->numChannels;
 
@@ -398,7 +398,7 @@ inline void BMMultiLevelSVF_updateSVFParam(BMMultiLevelSVF *This){
 			// stage 1: this queues values to be updated
 			// the lock prevents the UI thread from modifying the pending
 			// coefficient values while we are copying them to the targets
-//			if (os_unfair_lock_trylock(&This->lock)){
+			if (os_unfair_lock_trylock(&This->lock)){
 				// if we got the lock, copy the updated values.
 				This->g0_target[i] = This->g0_pending[i];
 				This->g1_target[i] = This->g1_pending[i];
@@ -407,13 +407,13 @@ inline void BMMultiLevelSVF_updateSVFParam(BMMultiLevelSVF *This){
 				This->m1_target[i] = This->m1_pending[i];
 				This->m2_target[i] = This->m2_pending[i];
 				This->k_target[i]  = This->k_pending[i];
-//				os_unfair_lock_unlock(&This->lock);
-//			}
+				os_unfair_lock_unlock(&This->lock);
+			}
 			// if we didn't get the lock, schedule another update. Hopefully
 			// we will get the lock next time.
-//			else {
+			else {
 				This->shouldUpdateParam = true;
-//			}
+			}
 			
 			// stage 2: This update should be done on the audio thread by
 			// calling BMMultiLevelSVF_stageTwoParameterUpdate()
@@ -484,12 +484,12 @@ void BMMultiLevelSVF_setLowpass12dB(BMMultiLevelSVF *This, double fc, size_t lev
 void BMMultiLevelSVF_setLowpass12dBwithQ(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
     
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = 0.0;
 	This->m1_pending[level] = 0.0;
 	This->m2_pending[level] = 1.0;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
     
     This->shouldUpdateParam = true;
 }
@@ -687,12 +687,12 @@ void BMMultiLevelSVF_setHighpass60dB(BMMultiLevelSVF *This, double fc, size_t le
 void BMMultiLevelSVF_setBandpass(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
     
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = 0.0;
 	This->m1_pending[level] = 2.0 * This->k_pending[level];
 	This->m2_pending[level] = 0.0;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
 	
     This->shouldUpdateParam = true;
 }
@@ -704,12 +704,12 @@ void BMMultiLevelSVF_setHighpass12dB(BMMultiLevelSVF *This, double fc, size_t le
 void BMMultiLevelSVF_setHighpass12dBwithQ(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
     
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = 1.0;
 	This->m1_pending[level] = 0.0;
 	This->m2_pending[level] = 0.0;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
 	
     This->shouldUpdateParam = true;
 }
@@ -717,12 +717,12 @@ void BMMultiLevelSVF_setHighpass12dBwithQ(BMMultiLevelSVF *This, double fc, doub
 void BMMultiLevelSVF_setNotch(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
     
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = 1.0;
 	This->m1_pending[level] = 0.0;
 	This->m2_pending[level] = 1.0;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
     
     This->shouldUpdateParam = true;
 }
@@ -731,12 +731,12 @@ void BMMultiLevelSVF_setNotch(BMMultiLevelSVF *This, double fc, double Q, size_t
 void BMMultiLevelSVF_setAllpass(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
     
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = 1.0;
 	This->m1_pending[level] = This->k_pending[level];
 	This->m2_pending[level] = 1.0;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
     
     This->shouldUpdateParam = true;
 }
@@ -748,12 +748,12 @@ void BMMultiLevelSVF_setBell(BMMultiLevelSVF *This, double fc, double gainDb, do
 	
 	double A = BM_DB_TO_GAIN(gainDb);
 	
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = 1.0;
 	This->m1_pending[level] = A * This->k_pending[level];
 	This->m2_pending[level] = 1.0;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
     
     This->shouldUpdateParam = true;
 }
@@ -765,12 +765,12 @@ void BMMultiLevelSVF_setBellWithSkirt(BMMultiLevelSVF *This, double fc, double b
 	double A = BM_DB_TO_GAIN(bellGainDb);
 	double B = BM_DB_TO_GAIN(skirtGainDb);
 	
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = B;
 	This->m1_pending[level] = A * This->k_pending[level];
 	This->m2_pending[level] = B;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
 	
 	This->shouldUpdateParam = true;
 }
@@ -786,12 +786,12 @@ void BMMultiLevelSVF_setLowShelfS(BMMultiLevelSVF *This, double fc, double gainD
 	double A = sqrt(BM_DB_TO_GAIN(gainDb));
 	
 	double Q = S / sqrt(2.0);
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = 1.0;
 	This->m1_pending[level] = A * This->k_pending[level];
 	This->m2_pending[level] = A * A;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
     
     This->shouldUpdateParam = true;
 }
@@ -806,12 +806,12 @@ void BMMultiLevelSVF_setHighShelfS(BMMultiLevelSVF *This, double fc, double gain
 	double A = sqrt(BM_DB_TO_GAIN(gainDb));
 	
 	double Q = S / sqrt(2.0);
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = A * A;
 	This->m1_pending[level] = A * This->k_pending[level];
 	This->m2_pending[level] = 1.0;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
 	
 	This->shouldUpdateParam = true;
 }
@@ -865,7 +865,7 @@ void BMMultiLevelSVF_setFromBiquad(BMMultiLevelSVF *This,
 	m1 = -m1;
 	
 	// set the results of g and k calculations to the pending coefficients
-//	os_unfair_lock_lock(&This->lock);
+	os_unfair_lock_lock(&This->lock);
 	This->g0_pending[level] = g0;
 	This->g1_pending[level] = g1;
 	This->g2_pending[level] = g2;
@@ -873,7 +873,7 @@ void BMMultiLevelSVF_setFromBiquad(BMMultiLevelSVF *This,
 	This->m0_pending[level] = m0;
 	This->m1_pending[level] = m1;
 	This->m2_pending[level] = m2;
-//	os_unfair_lock_unlock(&This->lock);
+	os_unfair_lock_unlock(&This->lock);
 	
 	This->shouldUpdateParam = true;
 }

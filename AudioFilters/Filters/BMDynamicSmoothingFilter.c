@@ -19,7 +19,7 @@
 //  changes and still react immediately to large changes.
 
 #include "BMDynamicSmoothingFilter.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "Constants.h"
 
 #define BM_DSF_SENSITIVITY 0.125f

@@ -6,13 +6,13 @@
 //  I release this file into the public domain.
 //
 
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "BMDither.h"
-#include "../Constants.h"
+#include "Constants.h"
 #include <math.h>
 
-#define BMDITHER_HIGH_SHELF_ORDER 9
-#define BMDITHER_HIGH_SHELF_LEVELS (BMDITHER_HIGH_SHELF_ORDER + 1) / 2
+#define BMDITHER_HIGH_SHELF_ORDER 8
+#define BMDITHER_HIGH_SHELF_LEVELS BMDITHER_HIGH_SHELF_ORDER / 2
 #define BMDITHER_FILTER_LEVELS 2 + BMDITHER_HIGH_SHELF_LEVELS
 
 #define BMDITHER_LOW_SHELF_1_FC 1050.0
@@ -27,7 +27,7 @@
 #define BMDITHER_LOW_SHELF_2_LEVEL 1
 #define BMDITHER_HIGH_SHELF_LEVEL 2
 
-#define BMDITHER_MIDRANGE_GAIN -103.0
+#define BMDITHER_MIDRANGE_GAIN -102.0
 #define BMDITHER_SILENT_VOLUME 0.00001525878906 // 2^(-16) // if the volume is less than this, we consider it silent.
 
 

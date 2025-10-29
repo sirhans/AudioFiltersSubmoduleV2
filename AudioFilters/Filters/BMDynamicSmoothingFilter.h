@@ -24,7 +24,7 @@
 #define BMDynamicSmoothingFilter_h
 
 #include <stdio.h>
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 #ifdef __cplusplus
 extern "C" {

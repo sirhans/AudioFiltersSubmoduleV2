@@ -7,7 +7,7 @@
 //
 
 #include <stdlib.h>
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "BM2x2MatrixMixer.h"
 #include "Constants.h"
 
@@ -29,8 +29,7 @@ void BM2x2MatrixMixer_free(BM2x2MatrixMixer *This){
 
 
 void BM2x2MatrixMixer_setRotation(BM2x2MatrixMixer *This, float rotationAngleInRadians){
-    //TODO:
-	//This->M = BM2x2Matrix_rotationMatrix(rotationAngleInRadians);
+	This->M = BM2x2Matrix_rotationMatrix(rotationAngleInRadians);
 }
 
 

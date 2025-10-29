@@ -9,9 +9,9 @@
 
 #include <math.h>
 #include <assert.h>
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "BMEnvelopeFollower.h"
-#include "../Constants.h"
+#include "Constants.h"
 
 // set all stages of smoothing filters to critically damped
 #define BMENV_FILTER_Q 0.5f
@@ -773,9 +773,9 @@ void BMMultiReleaseFilter_init(BMMultiReleaseFilter *This, float fc,int numLayer
 
 void BMMultiReleaseFilter_destroy(BMMultiReleaseFilter *This){
     free(This->filters);
-    This->filters = NULL;
+    This->filters = nil;
     free(This->foFilters);
-    This->foFilters = NULL;
+    This->foFilters = nil;
 }
 
 void BMMultiReleaseFilter_setCutoff(BMMultiReleaseFilter *This, float fc){
@@ -871,9 +871,9 @@ void BMMultiAttackFilter_init(BMMultiAttackFilter *This, float fc,int numLayers,
 
 void BMMultiAttackFilter_destroy(BMMultiAttackFilter *This){
     free(This->filters);
-    This->filters = NULL;
+    This->filters = nil;
     free(This->foFilters);
-    This->foFilters = NULL;
+    This->foFilters = nil;
 }
 
 void BMMultiAttackFilter_setCutoff(BMMultiAttackFilter *This, float fc){

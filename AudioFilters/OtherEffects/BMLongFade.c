@@ -10,7 +10,7 @@
 #include "Constants.h"
 #include "stdlib.h"
 #include "BMUnitConversion.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 
 void BMLongFade_init(BMLongFade *This, float startGainDB, float endGainDB, float lengthInSeconds, float sampleRate){

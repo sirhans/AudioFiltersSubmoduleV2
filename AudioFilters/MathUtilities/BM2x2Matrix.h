@@ -21,19 +21,21 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-	
-	
+    
+    
 #include <math.h>
-//#include <simd/simd.h>
-#include <arm_neon.h>
+#include <simd/simd.h>
 
 
-/*!
- *BM2x2Matrix_rotationMatrix
- *
- * @abstract returns a 2x2 rotation matrix with angle theta
- */
-float32x2x2_t BM2x2Matrix_rotationMatrix(float theta);
+
+static inline simd_float2x2 BM2x2Matrix_rotationMatrix(float theta){
+	simd_float2 column0 = {cosf(theta), sinf(theta)};
+	simd_float2 column1 = {-sinf(theta),cosf(theta)};
+	simd_float2x2 R = simd_matrix(column0, column1);
+	return R;
+}
+
+
 
 
 /*!
@@ -41,22 +43,28 @@ float32x2x2_t BM2x2Matrix_rotationMatrix(float theta);
  *
  * @abstract returns a 2x2 rotation matrix with angle theta
  */
-float64x2x2_t BM2x2MatrixD_rotationMatrix(double theta);
+static inline simd_double2x2 BM2x2MatrixD_rotationMatrix(double theta){
+	simd_double2 column0 = {cos(theta), sin(theta)};
+	simd_double2 column1 = {-sin(theta),cos(theta)};
+	simd_double2x2 R = simd_matrix(column0, column1);
+	return R;
+}
 
 
 
 
-///*!
-//*BM2x2Matrix_rotate
-//*
-//* @abstract out = M.RotationMatrix(theta)
-//*/
-//static inline float32x2x2_t BM2x2Matrix_rotate(float32x2x2_t M, float theta);
+/*!
+*BM2x2Matrix_rotate
+*
+* @abstract out = M.RotationMatrix(theta)
+*/
+static inline simd_float2x2 BM2x2Matrix_rotate(simd_float2x2 M, float theta){
+	return simd_mul(M,BM2x2Matrix_rotationMatrix(theta));
+}
 
 
 
-
-	
+    
 //
 //    /*
 //     * |m11 m12|
@@ -141,8 +149,8 @@ float64x2x2_t BM2x2MatrixD_rotationMatrix(double theta);
 //        return M;
 //    }
 //
-	
-	
+    
+    
 #ifdef __cplusplus
 }
 #endif

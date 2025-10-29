@@ -7,7 +7,7 @@
 //
 
 #include "BMPanLFO.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "Constants.h"
 
 void BMPanLFO_init(BMPanLFO *This,

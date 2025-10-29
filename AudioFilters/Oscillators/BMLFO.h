@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "BMQuadratureOscillator.h"
-#include "../OtherEffects/BMSmoothValue.h"
+#include "BMSmoothValue.h"
 
 typedef struct BMLFO {
 	BMQuadratureOscillator osc;

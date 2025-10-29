@@ -38,10 +38,10 @@ void BMESFirstOrderFilter_destroy(BMESFirstOrderFilter* This){
         free(This->parametersTable[i]);
     }
     free(This->parametersTable);
-    This->parametersTable = NULL;
+    This->parametersTable = nil;
     
     free(This->buffer);
-    This->buffer = NULL;
+    This->buffer = nil;
 }
 
 #pragma mark - Set function

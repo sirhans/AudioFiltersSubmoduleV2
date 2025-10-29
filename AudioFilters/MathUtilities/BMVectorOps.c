@@ -7,8 +7,8 @@
 //
 
 #include "BMVectorOps.h"
-#include "../AudioFilter.h"
 #include <Accelerate/Accelerate.h>
+
 
 /*!
  * BMvInRangef

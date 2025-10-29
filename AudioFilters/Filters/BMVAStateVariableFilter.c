@@ -11,7 +11,7 @@
 #include "DspUtilities.h"
 #include "Constants.h"
 #include <assert.h>
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 void BMVAStateVariableFilter_processBufferLPBPHP(BMVAStateVariableFilter *This,simd_float2* input,  const size_t numSamples);
 void BMVAStateVariableFilter_processBufferUBP(BMVAStateVariableFilter *This,simd_float2* input,  const size_t numSamples);

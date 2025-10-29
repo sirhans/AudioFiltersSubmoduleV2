@@ -14,7 +14,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "../Constants.h"
+#include "Constants.h"
 
 typedef struct BMSmoothValue {
 	float currentValue, targetValue, pendingTargetValue, increment;

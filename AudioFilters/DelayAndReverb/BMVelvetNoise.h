@@ -23,7 +23,7 @@ extern "C" {
 #ifndef BMVelvetNoise_h
 #define BMVelvetNoise_h
     
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
     
 /*!

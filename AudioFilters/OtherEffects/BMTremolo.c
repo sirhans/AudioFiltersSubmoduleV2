@@ -14,7 +14,7 @@ extern "C" {
 #endif
     
 #include "BMTremolo.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
     
     /*
      * Uses a primary LFO to do tremolo and a secondary LFO to modulate the

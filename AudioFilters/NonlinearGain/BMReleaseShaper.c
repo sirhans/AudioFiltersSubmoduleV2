@@ -7,7 +7,7 @@
 //
 
 #include "BMReleaseShaper.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include "Constants.h"
 #include "BMUnitConversion.h"
 

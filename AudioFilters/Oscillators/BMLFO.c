@@ -7,7 +7,7 @@
 //
 
 #include "BMLFO.h"
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 #include <math.h>
 #define BMLFO_PARAMETER_UPDATE_TIME_SECONDS 1.0
 

@@ -9,7 +9,7 @@
 #ifndef BMQuadraticThreshold_h
 #define BMQuadraticThreshold_h
 
-#include "../AudioFilter.h"
+#include <Accelerate/Accelerate.h>
 
 #ifdef __cplusplus
 extern "C" {

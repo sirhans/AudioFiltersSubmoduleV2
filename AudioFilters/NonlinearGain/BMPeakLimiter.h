@@ -10,10 +10,10 @@
 #define BMPeakLimiter_h
 
 #include <stdio.h>
-#include "../DelayAndReverb/BMShortSimpleDelay.h"
+#include "BMShortSimpleDelay.h"
 #include "BMEnvelopeFollower.h"
-#include "../Constants.h"
-#include "../OtherEffects/BMSmoothGain.h"
+#include "Constants.h"
+#include "BMSmoothGain.h"
 
 #ifdef __cplusplus
 extern "C" {
