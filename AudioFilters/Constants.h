@@ -21,6 +21,10 @@
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #endif /* MIN */
 
+#ifndef MAX
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+
 #ifndef BM_MIN
 #define BM_MIN(a,b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a < _b ? _a : _b; })
 #endif

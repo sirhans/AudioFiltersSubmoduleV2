@@ -11,7 +11,7 @@
 #include <assert.h>
 #include "../AudioFilter.h"
 #include "BMEnvelopeFollower.h"
-#include "Constants.h"
+#include "../Constants.h"
 
 // set all stages of smoothing filters to critically damped
 #define BMENV_FILTER_Q 0.5f

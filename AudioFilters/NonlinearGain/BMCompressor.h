@@ -14,10 +14,10 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "BMMultiLevelBiquad.h"
+#include "../Filters/BMMultiLevelBiquad.h"
 #include "BMEnvelopeFollower.h"
 #include "BMQuadraticThreshold.h"
-#include "BMSmoothGain.h"
+#include "../OtherEffects/BMSmoothGain.h"
 
 #ifdef __cplusplus
 extern "C" {

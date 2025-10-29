@@ -10,7 +10,7 @@
 #define BMWhiteNoiseOscillator_h
 
 #include <stdio.h>
-#include "tinymt32.h"
+#include "../MathUtilities/TinyMT/tinymt32.h"
 
 typedef struct BMWhiteNoiseOscillator {
 	tinymt32_t randomGenerator;

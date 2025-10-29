@@ -8,7 +8,7 @@
 #include "BMMultiLevelSVF.h"
 #include <stdlib.h>
 #include <assert.h>
-#include "Constants.h"
+#include "../Constants.h"
 
 //#define SVF_PARAM_COUNT 3
 #define SVF_GOLDEN_RATIO (1.0 + sqrt(5.0)) / 2.0

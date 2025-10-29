@@ -6,10 +6,10 @@
 //  Anyone may use this file without restrictions.
 //
 
-#include "BMPeakLimiter.h"
+#include "../NonlinearGain/BMPeakLimiter.h"
 #include <string.h>
 #include "../AudioFilter.h"
-#include "Constants.h"
+#include "../Constants.h"
 
 #define BM_PEAK_LIMITER_LOOKAHEAD_TIME_DV 0.00025f
 #define BM_PEAK_LIMITER_LOOKAHEAD_TIME_NO_REALTIME 0.001f

@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "../AudioFilter.h"
-#import <os/lock.h>
+//#import <os/lock.h>
 #include "BMMultiLevelBiquad.h"
 
 typedef struct BMMultiLevelSVF{
@@ -57,7 +57,7 @@ typedef struct BMMultiLevelSVF{
     double sampleRate;
     bool shouldUpdateParam, updateImmediately, needsClearStateVariables;
 	bool filterSweep;
-	os_unfair_lock lock;
+//	os_unfair_lock lock;
 //	BMMultiLevelBiquad biquadHelper; // we have this so that we can reuse some functions such as the ones for plotting transfer functions
 }BMMultiLevelSVF;
 

@@ -6,6 +6,10 @@
 //extern "C" {
 //#endif
 
+#include <math.h>
+#include <algorithm.h>
+#include "../Constants.h"
+
 typedef float simd_float1;
 
 typedef struct {
@@ -171,27 +175,27 @@ static inline float simd_clamp(float v,float min,float max){
 }
 
 static inline simd_float2 simd_min(simd_float2 v1,simd_float2 v2){
-    return {juce::jmin(v1.x,v2.x),juce::jmin(v1.y,v2.y)};
+    return {MIN(v1.x,v2.x),MIN(v1.y,v2.y)};
 }
 
 static inline float simd_min(float v1,float v2){
-    return juce::jmin(v1,v2);
+    return MIN(v1,v2);
 }
 
 static inline simd_float4 simd_min(simd_float4 v1,simd_float4 v2){
-    return {juce::jmin(v1.x,v2.x),juce::jmin(v1.y,v2.y),juce::jmin(v1.z,v2.z),juce::jmin(v1.w,v2.w)};
+    return {MIN(v1.x,v2.x),MIN(v1.y,v2.y),MIN(v1.z,v2.z),MIN(v1.w,v2.w)};
 }
 
 static inline simd_float2 simd_max(simd_float2 v1,simd_float2 v2){
-    return {juce::jmax(v1.x,v2.x),juce::jmax(v1.y,v2.y)};
+    return {MAX(v1.x,v2.x),MAX(v1.y,v2.y)};
 }
 
 static inline float simd_max(float v1,float v2){
-    return juce::jmax(v1,v2);
+    return MAX(v1,v2);
 }
 
 static inline simd_float4 simd_max(simd_float4 v1,simd_float4 v2){
-    return {juce::jmax(v1.x,v2.x),juce::jmax(v1.y,v2.y),juce::jmax(v1.z,v2.z),juce::jmax(v1.w,v2.w)};
+    return {MAX(v1.x,v2.x),MAX(v1.y,v2.y),MAX(v1.z,v2.z),MAX(v1.w,v2.w)};
 }
 
 static inline float simd_fract(float v){
