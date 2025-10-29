@@ -22,6 +22,10 @@
 #include "BMSmoothSwitch.h"
 #include "BMWhiteNoiseOscillator.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {BMDITHER_16} DitherBitDepth;
 
 
@@ -51,5 +55,9 @@ void BMDither_processStereo(BMDither *This, float *inL, float *inR, float *outL,
  *BMDither_free
  */
 void BMDither_free(BMDither *This);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* BMDither_h */
