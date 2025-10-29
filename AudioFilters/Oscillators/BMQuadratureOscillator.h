@@ -46,7 +46,7 @@
 //#include "BM2x2Matrix.h"
 #include <stddef.h>
 #include <stdbool.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 #ifdef __cplusplus
 extern "C" {

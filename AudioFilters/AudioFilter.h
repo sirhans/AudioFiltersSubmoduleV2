@@ -20,6 +20,7 @@
 
 #if USE_ACCELERATE
     #include <Accelerate/Accelerate.h>
+    #include <simd/simd.h>
     #include <arm_neon.h>
 
     #define my_float64x2_t float64x2_t
@@ -30,6 +31,7 @@
     #define my_vgetq_lane_f64 vgetq_lane_f64
 #else
     #include "../AudioFilters/CrossPlatform/BMVDSP.h"  // your custom vDSP replacement
+    #include "../AudioFilters/CrossPlatform/BMSimd.h"
 
 #if defined(__aarch64__) && USE_NEON
     #include <arm_neon.h>
