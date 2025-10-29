@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "Constants.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 
 void BMShortSimpleDelay_process(BMShortSimpleDelay *This,

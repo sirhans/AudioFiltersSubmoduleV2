@@ -9,7 +9,7 @@
 #include "BMBroadSpectrumTestSignal.h"
 #include "BMUnitConversion.h"
 #include <stdlib.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
 
 

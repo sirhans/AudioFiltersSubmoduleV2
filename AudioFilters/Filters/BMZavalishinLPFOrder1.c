@@ -7,7 +7,7 @@
 //
 
 #include "BMZavalishinLPFOrder1.h"
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 
 void BMZavalishinLPFOrder1_init(BMZavalishinLPFOrder1 *This, float fc, float sampleRate){

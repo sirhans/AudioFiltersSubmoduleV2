@@ -7,7 +7,7 @@
 //
 
 #include "BMQuadraticRectifier.h"
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
 
 

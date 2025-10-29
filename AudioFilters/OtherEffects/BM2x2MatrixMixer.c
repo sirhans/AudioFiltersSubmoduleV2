@@ -7,7 +7,7 @@
 //
 
 #include <stdlib.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BM2x2MatrixMixer.h"
 #include "Constants.h"
 

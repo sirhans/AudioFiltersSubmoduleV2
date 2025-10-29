@@ -6,7 +6,7 @@
 //
 
 #include "BMSineWaveshaper.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
 
 

@@ -8,7 +8,7 @@
 
 #include "BMSmoothDelay.h"
 #include "Constants.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 void BMSmoothDelay_prepareLGIBuffer(BMSmoothDelay* This,size_t bufferSize);
 void BMSmoothDelay_updateDelaySpeed(BMSmoothDelay* This,float speed);

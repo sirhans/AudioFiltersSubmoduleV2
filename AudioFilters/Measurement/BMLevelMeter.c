@@ -17,7 +17,7 @@ extern "C" {
 #include "BMLevelMeter.h"
 #include "BMRMSPower.h"
 #include "Constants.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
     
 #define BM_LEVEL_METER_DEFAULT_BUFFER_LENGTH 256
 #define BM_LEVEL_METER_DEFAULT_FAST_RELEASE_TIME 0.25

@@ -31,7 +31,7 @@
 #define BMHysteresisLimiter_h
 
 #include <stdio.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 #include "BMMultiLevelBiquad.h"
 
 typedef struct BMHysteresisLimiter {

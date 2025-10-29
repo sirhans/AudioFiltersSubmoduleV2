@@ -12,7 +12,7 @@
 #define BMWaveshaper_h
 
 #include <stdio.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 /*!
  *BMWaveshaper_processBufferBidirectional

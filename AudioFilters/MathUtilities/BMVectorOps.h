@@ -12,7 +12,7 @@
 #define BMVectorOps_h
 
 #include <MacTypes.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 // 256 bit vectors
 typedef unsigned vUint32_8 __attribute__((ext_vector_type(8),aligned(4)));

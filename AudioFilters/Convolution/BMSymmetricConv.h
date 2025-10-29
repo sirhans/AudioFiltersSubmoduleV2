@@ -18,7 +18,7 @@
 extern "C" {
 #endif
     
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
     
 #ifndef BMSymmetricConv_h
 #define BMSymmetricConv_h

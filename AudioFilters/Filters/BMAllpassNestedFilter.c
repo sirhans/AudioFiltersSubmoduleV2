@@ -8,7 +8,7 @@
 
 #include "BMAllpassNestedFilter.h"
 #include "Constants.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 
 void BMAllpassFilterData_init(BMAllpassFilterData* This,size_t delaySamples,float dc1, float dc2);

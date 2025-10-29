@@ -7,7 +7,7 @@
 //
 
 #include "BMInterleaver.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 
 /*!

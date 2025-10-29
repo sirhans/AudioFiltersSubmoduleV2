@@ -15,7 +15,7 @@ extern "C" {
 #endif
     
 #include "BMWetDryMixer.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
     
 #define BM_WETDRYMIXER_SMALL_CHUNK_SIZE 128

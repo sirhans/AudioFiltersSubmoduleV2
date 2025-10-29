@@ -7,7 +7,7 @@
 //
 
 #include "BMVectorOps.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 
 /*!

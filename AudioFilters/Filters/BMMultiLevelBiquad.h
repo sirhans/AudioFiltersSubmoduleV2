@@ -12,7 +12,7 @@
 #define BMMultiLevelBiquad_h
 
 #include <stdio.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMSmoothGain.h"
 
 #ifdef __cplusplus

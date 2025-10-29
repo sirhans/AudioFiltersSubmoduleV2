@@ -12,7 +12,7 @@
 extern "C" {
 #endif
     
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMCrossover.h"
 #include <assert.h>
     

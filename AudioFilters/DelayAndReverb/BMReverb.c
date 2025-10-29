@@ -16,7 +16,7 @@
 #include <stddef.h>
 #include <math.h>
 #include "Constants.h"
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 #include "BMFastHadamard.h"
 #include <mactypes.h>
 #include "BMSorting.h"

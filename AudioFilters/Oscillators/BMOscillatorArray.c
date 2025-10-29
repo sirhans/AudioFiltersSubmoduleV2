@@ -8,7 +8,7 @@
 
 #include "BMOscillatorArray.h"
 #include "BMQuadratureOscillator.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include <stdlib.h>
 
 #ifdef __cplusplus

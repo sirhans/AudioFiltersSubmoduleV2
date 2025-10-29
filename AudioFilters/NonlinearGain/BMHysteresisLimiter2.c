@@ -11,7 +11,7 @@
 #include <math.h>
 #include <assert.h>
 #include "Constants.h"
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 #define BM_HYSTERESISLIMITER_DEFAULT_POWER_LIMIT -45.0f
 #define BM_HYSTERESISLIMITER_DEFAULT_SAG 1.0f / (4000.0f)

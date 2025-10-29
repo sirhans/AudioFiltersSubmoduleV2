@@ -6,7 +6,7 @@
 //
 
 #include <assert.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMLFOPan2.h"
 #include "BMUnitConversion.h"
 

@@ -10,7 +10,7 @@
 #define BMMultiLevelSVF_h
 
 #include <stdio.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #import <os/lock.h>
 #include "BMMultiLevelBiquad.h"
 

@@ -17,13 +17,7 @@
 #include "BMWetDryMixer.h"
 #include "BMStereoWidener.h"
 #include <math.h>
-
-#ifdef __APPLE__
-#include <Accelerate/Accelerate.h>
-#include <simd/simd.h>
-#else
-#include "BMCrossPlatformVDSP.h"
-#endif
+#include "../AudioFilter.h"
 
 // default settings
 #define BMREVERB_WETMIX 0.15 // dryMix = sqrt(1 - wetMix^2)

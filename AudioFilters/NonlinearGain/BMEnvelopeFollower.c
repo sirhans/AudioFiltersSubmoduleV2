@@ -9,7 +9,7 @@
 
 #include <math.h>
 #include <assert.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMEnvelopeFollower.h"
 #include "Constants.h"
 

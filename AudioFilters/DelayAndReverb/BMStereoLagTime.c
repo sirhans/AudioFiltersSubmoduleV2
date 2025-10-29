@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
 
 void BMStereoLagTime_init(BMStereoLagTime* This,size_t maxDelaySamples,float duration,size_t sampleRate){

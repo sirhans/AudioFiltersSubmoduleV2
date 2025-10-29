@@ -21,8 +21,7 @@ extern "C" {
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
-#include <simd/simd.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 // forward declarations
 static void BMFastHadamard16(const float* input, float* output, float* temp16);

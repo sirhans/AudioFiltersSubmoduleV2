@@ -6,7 +6,7 @@
 //  I release this file into the public domain.
 //
 
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMDither.h"
 #include "Constants.h"
 #include <math.h>

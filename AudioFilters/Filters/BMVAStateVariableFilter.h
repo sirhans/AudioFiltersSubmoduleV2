@@ -10,7 +10,7 @@
 #define BMVAStateVariableFilter_h
 
 #include <stdio.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 #include <stdbool.h>
 
 #ifdef __cplusplus

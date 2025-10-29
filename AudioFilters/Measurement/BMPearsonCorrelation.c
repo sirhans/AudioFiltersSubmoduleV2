@@ -7,9 +7,7 @@
 //
 
 #include "BMPearsonCorrelation.h"
-#include <Accelerate/Accelerate.h>
-
-
+#include "../AudioFilter.h"
 
 
 /*

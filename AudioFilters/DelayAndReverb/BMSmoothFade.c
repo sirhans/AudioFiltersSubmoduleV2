@@ -8,7 +8,7 @@
 #include "BMSmoothFade.h"
 #include <stdlib.h>
 #include "Constants.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 void BMSmoothFade_init(BMSmoothFade* This,size_t fadeLength){
     This->fadeType = FT_Stop;

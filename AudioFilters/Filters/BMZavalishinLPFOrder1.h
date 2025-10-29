@@ -13,7 +13,7 @@
 #define BMZavalishinLPFOrder1_h
 
 #include <stdio.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 typedef struct BMZavalishinLPFOrder1 {
     float G,z1,sampleRate;

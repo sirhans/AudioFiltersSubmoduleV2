@@ -105,8 +105,7 @@
 
 #elif defined(__APPLE__) && defined(__MACH__) // Apple OSX and iOS (Darwin)
     #include <TargetConditionals.h>
-    #include <Accelerate/Accelerate.h>
-    #include <simd/simd.h>
+    #include "../AudioFilter.h"
     
     // 256 bit vectors
     typedef unsigned vUint32_8 __attribute__((ext_vector_type(8),aligned(4)));

@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "BMSpectrum.h"
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 #include <dispatch/dispatch.h>
 #include "TPCircularBuffer.h"
 

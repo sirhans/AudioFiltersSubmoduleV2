@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "BM2x2Matrix.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 
 #ifdef __cplusplus
 extern "C" {

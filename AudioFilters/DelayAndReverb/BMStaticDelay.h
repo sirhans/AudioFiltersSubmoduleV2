@@ -52,7 +52,7 @@ extern "C" {
     
     
 #include <stdio.h>
-//#include <simd/simd.h>
+#include "../AudioFilter.h"
 //#include "TPCircularBuffer+AudioBufferList.h"
 //#include "BM2x2Matrix.h"
 //#include "BMMultiLevelBiquad.h"

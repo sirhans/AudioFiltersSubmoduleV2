@@ -17,7 +17,7 @@
 #define BMChamberlinSVF_h
 
 #include <stdio.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 typedef struct BMChamberlinSVFStereo {
     simd_float2 i1,i2;

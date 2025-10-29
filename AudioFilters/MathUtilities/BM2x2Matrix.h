@@ -24,7 +24,7 @@ extern "C" {
     
     
 #include <math.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 
 

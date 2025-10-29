@@ -10,6 +10,6 @@
 #define BMColourFunctions_h
 
 #include <stdio.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 #endif /* BMColourFunctions_h */

@@ -8,7 +8,7 @@
 
 #include "BMPeakLimiter.h"
 #include <string.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "Constants.h"
 
 #define BM_PEAK_LIMITER_LOOKAHEAD_TIME_DV 0.00025f

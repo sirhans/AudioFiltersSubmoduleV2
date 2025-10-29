@@ -6,8 +6,7 @@
 //  Anyone may use this file without restrictions of any kind
 //
 
-#include <Accelerate/Accelerate.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 /*!
  *BMWaveshaper_processBufferBidirectional

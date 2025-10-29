@@ -7,7 +7,7 @@
 //
 
 #include "BMQuadraticLimiter.h"
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 void BMQuadraticLimiter_init(BMQuadraticLimiter* This, float limit, float width){
     BMQuadraticThreshold_initLower(&This->lower, -limit, width);

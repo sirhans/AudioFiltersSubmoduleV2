@@ -48,7 +48,7 @@
 
 #include <stdint.h>
 #include "sse.h"
-#include <Accelerate/Accelerate.h>
+#include "../../AudioFilter.h"
 #include "BMVectorOps.h"
 
 static inline float 

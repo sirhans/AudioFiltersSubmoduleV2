@@ -8,7 +8,7 @@
 
 #include "BMAudioStreamConverter.h"
 #include "Constants.h"
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 #define BM_SRC_STAGE_1_OVERSAMPLE_FACTOR 8
 #define BM_SRC_INPUT_BUFFER_LENGTH BM_SRC_MAX_OUTPUT_LENGTH * sizeof(float)

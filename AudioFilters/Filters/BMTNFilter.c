@@ -12,7 +12,7 @@
 //
 
 #include "BMTNFilter.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include <stdlib.h>
 
 #ifdef __cplusplus

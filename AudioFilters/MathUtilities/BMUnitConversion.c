@@ -7,7 +7,7 @@
 //
 
 #include <math.h>
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMUnitConversion.h"
 
 #define BM_DB_TO_GAIN(db) pow(10.0,db/20.0)

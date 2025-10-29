@@ -7,7 +7,7 @@
 //
 
 #include "BMBlip.h"
-#include <Accelerate/Accelerate.h>
+#include "../AudioFilter.h"
 #include "BMIntegerMath.h"
 #include "Constants.h"
 #include "BMIntegerMath.h"

@@ -10,7 +10,7 @@
 #define BMFirstOrderDirectForm_h
 
 #include <stdio.h>
-#include <simd/simd.h>
+#include "../AudioFilter.h"
 
 typedef struct BMFirstOrderDirectForm {
     float z1_f, b0_f, b1_f, a1_f, az_f;
