@@ -7,6 +7,7 @@
 
 #include "BMAmplitudeFollower.h"
 #include "Constants.h"
+#include "../AudioFilter.h"
 
 #define Test_MaxBuffers 5
 #define BMAEF_NOISE_GATE_CLOSED_LEVEL -100.0f

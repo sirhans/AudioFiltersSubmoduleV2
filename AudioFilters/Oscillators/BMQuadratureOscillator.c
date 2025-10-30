@@ -154,7 +154,7 @@ extern "C" {
         for(size_t i=0; i<numSamples; i++){
 			// multiply channels 0 and 1 by the positive side of the quadrature
 			// oscillator
-			float g = (float)simd_max((float) This->rq.x, 0.0);
+			float g = (float)simd_max(This->rq.x, 0.0);
 			buffersL[0][i] *= g;
 			buffersR[0][i] *= g;
 
