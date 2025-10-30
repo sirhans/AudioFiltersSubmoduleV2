@@ -27,6 +27,22 @@ extern SIMD_CFUNC simd_double2 simd_abs(simd_double2 x);
  *    __tg_ FUNCTIONS FROM simd/math.h  *
  *****************************************/
 
+static inline SIMD_CFUNC float simd_reduce_add(simd_float2 x) {
+  return x.x + x.y;
+}
+
+static inline SIMD_CFUNC float simd_reduce_add(simd_float3 x) {
+  return x.x + x.y + x.z;
+}
+
+static inline SIMD_CFUNC float simd_reduce_add(simd_float4 x) {
+  return simd_reduce_add(x.lo + x.hi);
+}
+
+static inline SIMD_CFUNC double simd_reduce_add(simd_double2 x) {
+  return x.x + x.y;
+}
+
 static inline SIMD_CFUNC float simd_muladd(float x, float y, float z) {
 #pragma STDC FP_CONTRACT ON
     return x*y + z;
@@ -235,6 +251,11 @@ static inline SIMD_CFUNC simd_float3 simd_make_float3(float other) {
     return result;
 }
 
+static inline SIMD_CFUNC simd_float3 simd_make_float3(float x,float y,float z) {
+    simd_float3 result = { x, y, z };
+    return result;
+}
+
 static inline SIMD_CFUNC simd_float4 simd_make_float4(float other) {
   simd_float4 result = 0;
   result.x = other;
@@ -260,6 +281,10 @@ static inline SIMD_CFUNC simd_float4 simd_smoothstep(simd_float4 edge0, simd_flo
   return t*t*(3 - 2*t);
 }
 
+static float  SIMD_CFUNC simd_dot(simd_float2  __x, simd_float2  __y) { return simd_reduce_add(__x*__y); }
+static float  SIMD_CFUNC simd_dot(simd_float3  __x, simd_float3  __y) { return simd_reduce_add(__x*__y); }
+static float  SIMD_CFUNC simd_dot(simd_float4  __x, simd_float4  __y) { return simd_reduce_add(__x*__y); }
+static double SIMD_CFUNC simd_dot(simd_double2 __x, simd_double2 __y) { return simd_reduce_add(__x*__y); }
 
 /*! @abstract Do not call this function; instead use `fabs` in C and
  *  Objective-C, and `simd::fabs` in C++.                                     */

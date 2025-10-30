@@ -556,6 +556,18 @@ void bDSP_distancesq(
                 float *C,
                 size_t N);
 
+void bDSP_vfillD(
+    const double *__A,   // pointer to scalar value
+    double *__C,          // destination array
+    ptrdiff_t __IC,       // stride between elements in C
+    size_t __N            // number of elements to fill
+);
+
+void bDSP_vclrD(
+               double   *C,
+               size_t  IC,
+                size_t  N);
+
 void bDSP_vqint(
                 const float *A,
                 const float *B,

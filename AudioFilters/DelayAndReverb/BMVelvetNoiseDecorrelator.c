@@ -13,6 +13,7 @@
 #include "BMVelvetNoise.h"
 #include "BMReverb.h"
 #include "../AudioFilter.h"
+#include "../MathUtilities/BMVectorOps.h"
 #include "BMReverb.h"
 #include "BMSorting.h"
 

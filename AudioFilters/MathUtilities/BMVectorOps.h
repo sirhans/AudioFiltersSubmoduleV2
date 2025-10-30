@@ -13,7 +13,7 @@
 
 #include "../AudioFilter.h"
 
-#if USE_ACELERATE
+#if USE_ACCELERATE
 // 256 bit vectors
 typedef unsigned vUint32_8 __attribute__((ext_vector_type(8),aligned(4)));
 typedef float vFloat32_8 __attribute__((ext_vector_type(8),aligned(4)));

@@ -180,6 +180,14 @@ void bDSP_vclr(
         C[n] = 0;
     }
 }
+void bDSP_vclrD(
+               double   *C,
+               size_t  IC,
+               size_t  N){
+    for(size_t n=0 ; n<N; n++){
+        C[n] = 0;
+    }
+}
 
 void bDSP_vsadd(
                 const float *A,
@@ -1106,6 +1114,17 @@ void bDSP_distancesq(
     *C = sum;
 }
 
+void bDSP_vfillD(
+    const double *__A,   // pointer to scalar value
+    double *__C,          // destination array
+    ptrdiff_t __IC,       // stride between elements in C
+    size_t __N            // number of elements to fill
+) {
+    double a = *__A;  // read the scalar once
+    for (size_t n = 0; n < __N; ++n) {
+        __C[n * __IC] = a;
+    }
+}
 
 void bDSP_vsq(
                 const float *A,

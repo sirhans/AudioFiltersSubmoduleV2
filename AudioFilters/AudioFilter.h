@@ -22,7 +22,6 @@
     #include <Accelerate/Accelerate.h>
     #include <simd/simd.h>
     #include <arm_neon.h>
-    #include "../AudioFilters/MathUtilities/BMVectorOps.h"
     #include <MacTypes.h>
 
     #define my_float64x2_t float64x2_t
@@ -34,7 +33,6 @@
 #else
     #include "../AudioFilters/CrossPlatform/BMVDSP.h"  // your custom vDSP replacement
     #include "CrossPlatform/BMSimd/BMSimd.h"
-    #include "../AudioFilters/MathUtilities/BMVectorOps.h"
 
 #if defined(__aarch64__) && USE_NEON
     #include <arm_neon.h>
@@ -70,6 +68,7 @@
 
 #endif
     #define nil NULL
+    #define Float64 double
     #define vDSP_vsmul bDSP_vsmul
     #define vDSP_vdbcon bDSP_vdbcon
     #define vDSP_vramp bDSP_vramp
@@ -87,6 +86,7 @@
     #define vDSP_vthr bDSP_vthr
     #define vDSP_vabs bDSP_vabs
     #define vDSP_vdbcon bDSP_vdbcon
+    #define vDSP_vclrD bDSP_vclrD
     #define vDSP_maxv bDSP_maxv
     #define vDSP_conv bDSP_conv
     #define vDSP_vclip bDSP_vclip
@@ -120,7 +120,9 @@
     #define vDSP_vminmg bDSP_vminmg
     #define vDSP_vsmsma bDSP_vsmsma
     #define vDSP_sve bDSP_sve
+    #define vDSP_vclrD bDSP_vclrD
     #define vDSP_vsmsa bDSP_vsmsa
+    #define vDSP_vfillD bDSP_vfillD
     #define vDSP_vdist bDSP_vdist
     #define vDSP_hamm_window bDSP_hamm_window
     #define vDSP_desamp bDSP_desamp

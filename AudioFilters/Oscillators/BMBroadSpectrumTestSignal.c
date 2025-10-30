@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include "../AudioFilter.h"
 #include "Constants.h"
-
+#include <limits.h>
 
 void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 									float minFrequency,
