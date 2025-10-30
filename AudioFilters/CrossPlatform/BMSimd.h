@@ -2,12 +2,11 @@
 #ifndef BM_SIMD_H
 #define BM_SIMD_H
 
-//#ifdef __cplusplus
-//extern "C" {
-//#endif
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <math.h>
-#include <algorithm.h>
 #include "../Constants.h"
 
 typedef float simd_float1;
@@ -273,8 +272,8 @@ static inline simd_double2x2 simd_matrix(simd_double2 col0, simd_double2 col1) {
     return r;
 }
 
-//#ifdef __cplusplus
-//}
-//#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif
