@@ -27,6 +27,7 @@ extern SIMD_CFUNC simd_double2 simd_abs(simd_double2 x);
  *    __tg_ FUNCTIONS FROM simd/math.h  *
  *****************************************/
 
+//reduce_add
 static inline SIMD_CFUNC float simd_reduce_add(simd_float2 x) {
   return x.x + x.y;
 }
@@ -43,6 +44,7 @@ static inline SIMD_CFUNC double simd_reduce_add(simd_double2 x) {
   return x.x + x.y;
 }
 
+//muladd
 static inline SIMD_CFUNC float simd_muladd(float x, float y, float z) {
 #pragma STDC FP_CONTRACT ON
     return x*y + z;
@@ -72,9 +74,17 @@ static inline SIMD_CFUNC simd_double2 simd_muladd(simd_double2 x, simd_double2 y
     return x*y + z;
 }
 
-static  simd_float2 SIMD_CFUNC simd_mul( simd_float2x2 __x,  simd_float2 __y) {  simd_float2 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); return __r; }
-static  simd_float3 SIMD_CFUNC simd_mul( simd_float2x3 __x,  simd_float2 __y) {  simd_float3 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); return __r; }
-static  simd_float4 SIMD_CFUNC simd_mul( simd_float2x4 __x,  simd_float2 __y) {  simd_float4 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); return __r; }
+//mul
+static  simd_float2 SIMD_CFUNC simd_mul( simd_float2x2 __x,  simd_float2 __y)
+{
+    simd_float2 __r = __x.columns[0]*__y[0];
+    __r = simd_muladd( __x.columns[1], __y[1],__r);
+    return __r;
+}
+static  simd_float3 SIMD_CFUNC simd_mul( simd_float2x3 __x,  simd_float2 __y)
+{  simd_float3 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); return __r; }
+static  simd_float4 SIMD_CFUNC simd_mul( simd_float2x4 __x,  simd_float2 __y)
+{  simd_float4 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); return __r; }
 static  simd_float2 SIMD_CFUNC simd_mul( simd_float3x2 __x,  simd_float3 __y) {  simd_float2 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); __r = simd_muladd( __x.columns[2], __y[2],__r); return __r; }
 static  simd_float3 SIMD_CFUNC simd_mul( simd_float3x3 __x,  simd_float3 __y) {  simd_float3 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); __r = simd_muladd( __x.columns[2], __y[2],__r); return __r; }
 static  simd_float4 SIMD_CFUNC simd_mul( simd_float3x4 __x,  simd_float3 __y) {  simd_float4 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); __r = simd_muladd( __x.columns[2], __y[2],__r); return __r; }
@@ -91,6 +101,7 @@ static simd_double2x2 SIMD_CFUNC simd_matrix(simd_double2 col0, simd_double2 col
 static  simd_float2x2 SIMD_CFUNC simd_mul( simd_float2x2 __x,  simd_float2x2 __y) {  simd_float2x2 __r; for (int i=0; i<2; ++i) __r.columns[i] = simd_mul(__x, __y.columns[i]); return __r; }
 static simd_double2x2 SIMD_CFUNC simd_mul(simd_double2x2 __x, simd_double2x2 __y) { simd_double2x2 __r; for (int i=0; i<2; ++i) __r.columns[i] = simd_mul(__x, __y.columns[i]); return __r; }
 
+//simd_all
 static inline SIMD_CFUNC simd_bool simd_all(simd_int2 x) {
 #if BM_HAS_NEON && (defined __arm64__ || defined __aarch64__)
     return vminv_u32(x) & 0x80000000;
@@ -102,6 +113,8 @@ static inline SIMD_CFUNC simd_bool simd_all(simd_int2 x) {
 
 static inline SIMD_CFUNC simd_bool simd_all(simd_int4 x) {
 #if BM_HAS_NEON && (defined __arm64__ || defined __aarch64__)
+    // vminvq_u32 : Unsigned Minimum across Vector.
+    //If the minimum value is 1 -> all elements of x are true
     return vminvq_u32(x) & 0x80000000;
 #else
     return simd_all(x.lo & x.hi);
@@ -271,6 +284,7 @@ static inline SIMD_CFUNC simd_float4 simd_make_float4(float x, float y, float z,
   return result;
 }
 
+//Smoothstep
 static inline SIMD_CFUNC float simd_smoothstep(float edge0, float edge1, float x) {
   float t = simd_clamp((x - edge0)/(edge1 - edge0), 0, 1);
   return t*t*(3 - 2*t);

@@ -30,51 +30,51 @@ inline SIMD_CFUNC simd_double2 simd_abs(simd_double2 x) {
  *  Helpers: bitcast between vector types
  *****************************************/
 
+//static inline simd_uint2 bitcast_u32x2_from_f32x2(simd_float2 x) {
+//    simd_uint2 r;
+//    __builtin_memcpy(&r, &x, sizeof(r));
+//    return r;
+//}
+
 static inline simd_uint2 bitcast_u32x2_from_f32x2(simd_float2 x) {
-    simd_uint2 r;
-    __builtin_memcpy(&r, &x, sizeof(r));
-    return r;
+    union { simd_float2 f; simd_uint2 u; } v = { x };
+    return v.u;
 }
+
 static inline simd_float2 bitcast_f32x2_from_u32x2(simd_uint2 x) {
-    simd_float2 r;
-    __builtin_memcpy(&r, &x, sizeof(r));
-    return r;
+    union { simd_uint2 u; simd_float2 f; } v = { x };
+    return v.f;
 }
 
 static inline simd_uint3 bitcast_u32x3_from_f32x3(simd_float3 x) {
-    simd_uint3 r;
-    __builtin_memcpy(&r, &x, sizeof(r));
-    return r;
+    union { simd_float3 f; simd_uint3 u; } v = { x };
+    return v.u;
 }
+
 static inline simd_float3 bitcast_f32x3_from_u32x3(simd_uint3 x) {
-    simd_float3 r;
-    __builtin_memcpy(&r, &x, sizeof(r));
-    return r;
+    union { simd_uint3 u; simd_float3 f; } v = { x };
+    return v.f;
 }
 
 static inline simd_uint4 bitcast_u32x4_from_f32x4(simd_float4 x) {
-    simd_uint4 r;
-    __builtin_memcpy(&r, &x, sizeof(r));
-    return r;
+    union { simd_float4 f; simd_uint4 u; } v = { x };
+    return v.u;
 }
+
 static inline simd_float4 bitcast_f32x4_from_u32x4(simd_uint4 x) {
-    simd_float4 r;
-    __builtin_memcpy(&r, &x, sizeof(r));
-    return r;
+    union { simd_uint4 u; simd_float4 f; } v = { x };
+    return v.f;
 }
 
 /* Internal 64-bit unsigned vector type for double bit-masking. */
-typedef __attribute__((__ext_vector_type__(2))) unsigned long long simd_ull2;
-
 static inline simd_ull2 bitcast_u64x2_from_f64x2(simd_double2 x) {
-    simd_ull2 r;
-    __builtin_memcpy(&r, &x, sizeof(r));
-    return r;
+    union { simd_double2 f; simd_ull2 u; } v = { x };
+    return v.u;
 }
+
 static inline simd_double2 bitcast_f64x2_from_u64x2(simd_ull2 x) {
-    simd_double2 r;
-    __builtin_memcpy(&r, &x, sizeof(r));
-    return r;
+    union { simd_ull2 u; simd_double2 f; } v = { x };
+    return v.f;
 }
 
 /*****************************************

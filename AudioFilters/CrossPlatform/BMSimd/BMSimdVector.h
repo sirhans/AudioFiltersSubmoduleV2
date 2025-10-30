@@ -14,6 +14,7 @@ typedef __attribute__((__ext_vector_type__(3))) unsigned int simd_uint3;
 typedef __attribute__((__ext_vector_type__(4))) unsigned int simd_uint4;
 typedef __attribute__((__ext_vector_type__(8),__aligned__(16))) unsigned int simd_uint8;
 typedef __attribute__((__ext_vector_type__(16),__aligned__(16))) unsigned int simd_uint16;
+typedef __attribute__((__ext_vector_type__(2))) unsigned long long simd_ull2;
 
 typedef float simd_float1;
 typedef __attribute__((__ext_vector_type__(2))) float simd_float2;
