@@ -23,6 +23,7 @@
     #include <simd/simd.h>
     #include <arm_neon.h>
     #include "../AudioFilters/MathUtilities/BMVectorOps.h"
+    #include <MacTypes.h>
 
     #define my_float64x2_t float64x2_t
     #define my_float64x2_t float64x2_t

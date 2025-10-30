@@ -11,9 +11,9 @@
 #ifndef BMVectorOps_h
 #define BMVectorOps_h
 
-#include <MacTypes.h>
 #include "../AudioFilter.h"
 
+#if USE_ACELERATE
 // 256 bit vectors
 typedef unsigned vUint32_8 __attribute__((ext_vector_type(8),aligned(4)));
 typedef float vFloat32_8 __attribute__((ext_vector_type(8),aligned(4)));
@@ -24,8 +24,6 @@ typedef float vFloat32_32 __attribute__((ext_vector_type(32),aligned(4)));
 typedef int vSInt32_32 __attribute__((ext_vector_type(32),aligned(4)));
 typedef unsigned vUInt32_32 __attribute__((ext_vector_type(32),aligned(4)));
 
-
-#if USE_ACELERATE
 /*!
  * BMvInRangef
  *
