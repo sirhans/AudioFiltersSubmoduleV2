@@ -7,7 +7,7 @@
 
 #include "BMSmoothFade.h"
 #include <stdlib.h>
-#include "Constants.h"
+#include "../Constants.h"
 #include "../AudioFilter.h"
 
 void BMSmoothFade_init(BMSmoothFade* This,size_t fadeLength){
