@@ -49,7 +49,7 @@
 #include <stdint.h>
 #include "sse.h"
 #include "../../AudioFilter.h"
-#include "BMVectorOps.h"
+//#include "BMVectorOps.h"
 
 static inline float 
 fastlog2 (float x)

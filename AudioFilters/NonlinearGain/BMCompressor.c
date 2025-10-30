@@ -12,7 +12,7 @@
 #include "BMCompressor.h"
 #include <stdlib.h>
 #include <math.h>
-#include "../MathUtilities/fastApproximation/fastlog.h"
+//#include "../MathUtilities/fastApproximation/fastlog.h"
 //#include "fastpow.h"
 //#include "BMVectorOps.h"
 #include "../Constants.h"

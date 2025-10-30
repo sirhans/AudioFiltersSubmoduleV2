@@ -12,7 +12,7 @@
 #define ComplexMath_h
 
 #include "../AudioFilter.h"
-#include "Constants.h"
+#include "../Constants.h"
 
 #ifdef __cplusplus
 extern "C" {

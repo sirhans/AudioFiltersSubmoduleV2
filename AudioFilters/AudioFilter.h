@@ -31,7 +31,7 @@
     #define my_vgetq_lane_f64 vgetq_lane_f64
 #else
     #include "../AudioFilters/CrossPlatform/BMVDSP.h"  // your custom vDSP replacement
-    #include "../AudioFilters/CrossPlatform/BMSimd.h"
+    #include "CrossPlatform/BMSimd/BMSimd.h"
 
 #if defined(__aarch64__) && USE_NEON
     #include <arm_neon.h>
@@ -66,7 +66,7 @@
     }
 
 #endif
-
+    #define nil NULL
     #define vDSP_vsmul bDSP_vsmul
     #define vDSP_vdbcon bDSP_vdbcon
     #define vDSP_vramp bDSP_vramp

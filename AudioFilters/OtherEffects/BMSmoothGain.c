@@ -14,7 +14,7 @@ extern "C" {
     
 #include "BMSmoothGain.h"
 #include "../AudioFilter.h"
-#include "Constants.h"
+#include "../Constants.h"
 	
 #define BM_SMOOTH_GAIN_INIT_CHECK 44643340424
     
