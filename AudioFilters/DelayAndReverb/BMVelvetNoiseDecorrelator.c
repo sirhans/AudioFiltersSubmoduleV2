@@ -12,7 +12,7 @@
 #include <assert.h>
 #include "BMVelvetNoise.h"
 #include "BMReverb.h"
-#include "BMVectorOps.h"
+#include "../AudioFilter.h"
 #include "BMReverb.h"
 #include "BMSorting.h"
 

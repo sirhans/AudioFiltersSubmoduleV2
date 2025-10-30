@@ -25,7 +25,7 @@ typedef int vSInt32_32 __attribute__((ext_vector_type(32),aligned(4)));
 typedef unsigned vUInt32_32 __attribute__((ext_vector_type(32),aligned(4)));
 
 
-
+#if USE_ACELERATE
 /*!
  * BMvInRangef
  *
@@ -65,6 +65,17 @@ vFloat32_32 vfabsf_32(vFloat32_32 a);
  */
 vFloat32_32 vfClipNeg32(vFloat32_32 A);
 
+/*!
+ *BMVectorNormSplitComplex
+ *
+ * @abstract find the l2 norm of v
+ *
+ * @param v input vector
+ * @param length length of v
+ */
+float BMVectorNormSplitComplex(const DSPSplitComplex v, size_t length);
+
+#endif
 
 /*!
  *BMVectorNorm
@@ -77,16 +88,6 @@ vFloat32_32 vfClipNeg32(vFloat32_32 A);
 float BMVectorNorm(const float* v, size_t length);
 
 
-
-/*!
- *BMVectorNormSplitComplex
- *
- * @abstract find the l2 norm of v
- *
- * @param v input vector
- * @param length length of v
- */
-float BMVectorNormSplitComplex(const DSPSplitComplex v, size_t length);
 
 
 

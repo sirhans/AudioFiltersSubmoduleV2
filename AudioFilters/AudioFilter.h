@@ -22,6 +22,7 @@
     #include <Accelerate/Accelerate.h>
     #include <simd/simd.h>
     #include <arm_neon.h>
+    #include "../AudioFilters/MathUtilities/BMVectorOps.h"
 
     #define my_float64x2_t float64x2_t
     #define my_float64x2_t float64x2_t
@@ -32,6 +33,7 @@
 #else
     #include "../AudioFilters/CrossPlatform/BMVDSP.h"  // your custom vDSP replacement
     #include "CrossPlatform/BMSimd/BMSimd.h"
+    #include "../AudioFilters/MathUtilities/BMVectorOps.h"
 
 #if defined(__aarch64__) && USE_NEON
     #include <arm_neon.h>
@@ -139,7 +141,11 @@
     #define vDSP_vrampmul2 bDSP_vrampmul2
     #define vDSP_vrampmul bDSP_vrampmul
     #define vDSP_vneg bDSP_vneg
-
+    #define vDSP_vmmaD bDSP_vmmaD
+    #define vDSP_sveD bDSP_sveD
+    #define vDSP_distancesq bDSP_distancesq
+    #define vDSP_ctoz bDSP_ctoz
+    #define vDSP_ztoc bDSP_ztoc
     #define vvtanf bvtanf
     #define vvrecf bvrecf
     #define vvexp2f bvexp2f

@@ -9,7 +9,7 @@
 #include "BMVectorOps.h"
 #include "../AudioFilter.h"
 
-
+#if USE_ACCELERATE
 /*!
  * BMvInRangef
  *
@@ -89,6 +89,21 @@ vFloat32_32 vfabsf_32(vFloat32_32 a){
     return t;
 }
 
+/*!
+ *BMVectorNormSplitComplex
+ *
+ * @abstract find the l2 norm of v
+ *
+ * @param v input vector
+ * @param length length of v
+ */
+float BMVectorNormSplitComplex(const DSPSplitComplex v, size_t length){
+    float sumsqi, sumsqr;
+    vDSP_svesq(v.imagp, 1, &sumsqi, length);
+    vDSP_svesq(v.realp, 1, &sumsqr, length);
+    return sqrtf(sumsqi + sumsqr);
+}
+
 
 /*
  * replace all negative values with zeros and return
@@ -97,6 +112,9 @@ vFloat32_32 vfClipNeg32(vFloat32_32 A){
     vFloat32_32 t = vfabsf_32(A);
     return (t + A) * 0.5;
 }
+
+#endif
+
 
 
 /*!
@@ -111,23 +129,6 @@ float BMVectorNorm(const float* v, size_t length){
 	float sumsq;
 	vDSP_svesq(v, 1, &sumsq, length);
 	return sqrtf(sumsq);
-}
-
-
-
-/*!
- *BMVectorNormSplitComplex
- *
- * @abstract find the l2 norm of v
- *
- * @param v input vector
- * @param length length of v
- */
-float BMVectorNormSplitComplex(const DSPSplitComplex v, size_t length){
-	float sumsqi, sumsqr;
-	vDSP_svesq(v.imagp, 1, &sumsqi, length);
-	vDSP_svesq(v.realp, 1, &sumsqr, length);
-	return sqrtf(sumsqi + sumsqr);
 }
 
 

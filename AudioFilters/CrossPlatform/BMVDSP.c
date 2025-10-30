@@ -1043,6 +1043,70 @@ void bDSP_svdiv(
     }
 }
 
+void bDSP_vmmaD(
+    const double *A, long IA,
+    const double *B, long IB,
+    const double *C, long IC,
+    const double *D, long ID,
+    double *E, long IE,
+    size_t N)
+{
+    long ia = 0;
+    long ib = 0;
+    long ic = 0;
+    long id = 0;
+    long ie = 0;
+
+    for (size_t n = 0; n < N; ++n) {
+        E[ie] = A[ia] * B[ib] + C[ic] * D[id];
+        ia += IA;
+        ib += IB;
+        ic += IC;
+        id += ID;
+        ie += IE;
+    }
+}
+
+void bDSP_sveD(
+    const double *A,
+    long IA,
+    double *C,
+    size_t N)
+{
+    double sum = 0.0;
+    long ia = 0;
+
+    for (size_t n = 0; n < N; ++n) {
+        sum += A[ia];
+        ia += IA;
+    }
+
+    *C = sum;
+}
+
+void bDSP_distancesq(
+    const float *A,
+    long IA,
+    const float *B,
+    long IB,
+    float *C,
+    size_t N)
+{
+    float sum = 0.0f;
+    long ia = 0;
+    long ib = 0;
+
+    for (size_t n = 0; n < N; ++n) {
+        float diff = A[ia] - B[ib];
+        sum += diff * diff;
+        ia += IA;
+        ib += IB;
+    }
+
+    *C = sum;
+}
+
+
 void bDSP_vsq(
                 const float *A,
                 long  IA,

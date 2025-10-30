@@ -527,6 +527,19 @@ void bDSP_minv(
                 long  IA,
                 float       *C,
                size_t  N);
+void bDSP_vmmaD(
+                const double *A, long IA,
+                const double *B, long IB,
+                const double *C, long IC,
+                const double *D, long ID,
+                double *E, long IE,
+                size_t N);
+
+void bDSP_sveD(
+                const double *A,
+                long IA,
+                double *C,
+               size_t N);
 
 void bDSP_vgen(
                 const float *__A,
@@ -534,6 +547,14 @@ void bDSP_vgen(
                 float       *__C,
                 long  __IC,
                size_t  __N);
+
+void bDSP_distancesq(
+                const float *A,
+                long IA,
+                const float *B,
+                long IB,
+                float *C,
+                size_t N);
 
 void bDSP_vqint(
                 const float *A,
@@ -834,6 +855,7 @@ extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
                     Y[m], IY,
                     N);
     */
+
 
 #ifdef __cplusplus
 }

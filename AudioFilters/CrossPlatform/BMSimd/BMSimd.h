@@ -147,6 +147,8 @@ static simd_bool SIMD_CFUNC simd_equal(simd_double2x2 __x, simd_double2x2 __y) {
 }
 
 SIMD_CFUNC simd_float2 __tg_fmax(simd_float2 a, simd_float2 b);
+SIMD_CFUNC simd_float3 __tg_fmax(simd_float3 a, simd_float3 b);
+SIMD_CFUNC simd_float4 __tg_fmax(simd_float4 a, simd_float4 b);
 
 SIMD_CFUNC simd_double2 __tg_fmax(simd_double2 a, simd_double2 b);
 
@@ -160,17 +162,35 @@ static inline SIMD_CFUNC simd_float2 simd_max(simd_float2 x, simd_float2 y) {
     return __tg_fmax(x,y);
 }
 
+static inline SIMD_CFUNC simd_float3 simd_max(simd_float3 x, simd_float3 y) {
+    return __tg_fmax(x,y);
+}
+
+static inline SIMD_CFUNC simd_float4 simd_max(simd_float4 x, simd_float4 y) {
+    return __tg_fmax(x,y);
+}
+
 static inline SIMD_CFUNC simd_double2 simd_max(simd_double2 x, simd_double2 y) {
     return __tg_fmax(x,y);
 }
 
 SIMD_CFUNC simd_float2 __tg_fmin(simd_float2 a, simd_float2 b);
+SIMD_CFUNC simd_float3 __tg_fmin(simd_float3 a, simd_float3 b);
+SIMD_CFUNC simd_float4 __tg_fmin(simd_float4 a, simd_float4 b);
 
 SIMD_CFUNC simd_double2 __tg_fmin(simd_double2 a, simd_double2 b);
 
 SIMD_CFUNC float __tg_fmin(float a, float b);
 
 static inline SIMD_CFUNC simd_float2 simd_min(simd_float2 x, simd_float2 y) {
+    return __tg_fmin(x,y);
+}
+
+static inline SIMD_CFUNC simd_float3 simd_min(simd_float3 x, simd_float3 y) {
+    return __tg_fmin(x,y);
+}
+
+static inline SIMD_CFUNC simd_float4 simd_min(simd_float4 x, simd_float4 y) {
     return __tg_fmin(x,y);
 }
 
@@ -181,6 +201,65 @@ static inline SIMD_CFUNC simd_double2 simd_min(simd_double2 x, simd_double2 y) {
 static inline SIMD_CFUNC float simd_min(float x, float y) {
     return __tg_fmin(x,y);
 }
+
+static inline SIMD_CFUNC float simd_clamp(float x, float min, float max) {
+    return (x < min) ? min : ((x > max) ? max : x);
+}
+
+static inline SIMD_CFUNC simd_float2 simd_clamp(simd_float2 x, simd_float2 min, simd_float2 max) {
+  return simd_min(simd_max(x, min), max);
+}
+
+static inline SIMD_CFUNC simd_float3 simd_clamp(simd_float3 x, simd_float3 min, simd_float3 max) {
+  return simd_min(simd_max(x, min), max);
+}
+
+static inline SIMD_CFUNC simd_float4 simd_clamp(simd_float4 x, simd_float4 min, simd_float4 max) {
+  return simd_min(simd_max(x, min), max);
+}
+
+static inline SIMD_CFUNC simd_float2 simd_make_float2(float other) {
+    simd_float2 result = { other, other };
+    return result;
+}
+
+static inline SIMD_CFUNC simd_float2 simd_make_float2(float x, float y) {
+  simd_float2 result;
+  result.x = x;
+  result.y = y;
+  return result;
+}
+
+static inline SIMD_CFUNC simd_float3 simd_make_float3(float other) {
+    simd_float3 result = { other, other, other };
+    return result;
+}
+
+static inline SIMD_CFUNC simd_float4 simd_make_float4(float other) {
+  simd_float4 result = 0;
+  result.x = other;
+  return result;
+}
+
+static inline SIMD_CFUNC simd_float4 simd_make_float4(float x, float y, float z, float w) {
+  simd_float4 result;
+  result.x = x;
+  result.y = y;
+  result.z = z;
+  result.w = w;
+  return result;
+}
+
+static inline SIMD_CFUNC float simd_smoothstep(float edge0, float edge1, float x) {
+  float t = simd_clamp((x - edge0)/(edge1 - edge0), 0, 1);
+  return t*t*(3 - 2*t);
+}
+
+static inline SIMD_CFUNC simd_float4 simd_smoothstep(simd_float4 edge0, simd_float4 edge1, simd_float4 x) {
+  simd_float4 t = simd_clamp((x - edge0)/(edge1 - edge0), 0, 1);
+  return t*t*(3 - 2*t);
+}
+
 
 /*! @abstract Do not call this function; instead use `fabs` in C and
  *  Objective-C, and `simd::fabs` in C++.                                     */

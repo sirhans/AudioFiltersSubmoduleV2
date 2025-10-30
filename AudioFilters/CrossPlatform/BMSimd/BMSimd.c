@@ -124,6 +124,42 @@ SIMD_CFUNC simd_float2 __tg_fmax(simd_float2 a, simd_float2 b) {
 #endif
 }
 
+SIMD_CFUNC simd_float3 __tg_fmax(simd_float3 a, simd_float3 b) {
+#if BM_HAS_NEON && (defined(__aarch64__) || defined(__arm64__) || defined(__ARM_NEON__))
+    // NEON doesn't have a 3-lane vector type, use 4 lanes and ignore the last
+    float32x4_t va = vld1q_f32((const float*)&a);
+    float32x4_t vb = vld1q_f32((const float*)&b);
+    float32x4_t vr = vmaxq_f32(va, vb);
+    simd_float3 r;
+    vst1q_f32((float*)&r, vr);
+    return r;
+#else
+    simd_float3 r;
+    r[0] = (a[0] > b[0]) ? a[0] : b[0];
+    r[1] = (a[1] > b[1]) ? a[1] : b[1];
+    r[2] = (a[2] > b[2]) ? a[2] : b[2];
+    return r;
+#endif
+}
+
+SIMD_CFUNC simd_float4 __tg_fmax(simd_float4 a, simd_float4 b) {
+#if BM_HAS_NEON && (defined(__aarch64__) || defined(__arm64__) || defined(__ARM_NEON__))
+    float32x4_t va = vld1q_f32((const float*)&a);
+    float32x4_t vb = vld1q_f32((const float*)&b);
+    float32x4_t vr = vmaxq_f32(va, vb);
+    simd_float4 r;
+    vst1q_f32((float*)&r, vr);
+    return r;
+#else
+    simd_float4 r;
+    r[0] = (a[0] > b[0]) ? a[0] : b[0];
+    r[1] = (a[1] > b[1]) ? a[1] : b[1];
+    r[2] = (a[2] > b[2]) ? a[2] : b[2];
+    r[3] = (a[3] > b[3]) ? a[3] : b[3];
+    return r;
+#endif
+}
+
 SIMD_CFUNC simd_double2 __tg_fmax(simd_double2 a, simd_double2 b) {
 #if BM_HAS_NEON && (defined(__aarch64__) || defined(__arm64__))
     // ARMv8 supports 2-lane double vectors directly
@@ -154,6 +190,43 @@ SIMD_CFUNC simd_float2 __tg_fmin(simd_float2 a, simd_float2 b) {
 #endif
 }
 
+SIMD_CFUNC simd_float3 __tg_fmin(simd_float3 a, simd_float3 b) {
+#if BM_HAS_NEON && (defined(__aarch64__) || defined(__arm64__) || defined(__ARM_NEON__))
+    // NEON doesn't have a native 3-lane vector type, so use 4 lanes and ignore the last
+    float32x4_t va = vld1q_f32((const float*)&a);
+    float32x4_t vb = vld1q_f32((const float*)&b);
+    float32x4_t vr = vminq_f32(va, vb);
+    simd_float3 r;
+    vst1q_f32((float*)&r, vr);
+    return r;
+#else
+    simd_float3 r;
+    r[0] = (a[0] < b[0]) ? a[0] : b[0];
+    r[1] = (a[1] < b[1]) ? a[1] : b[1];
+    r[2] = (a[2] < b[2]) ? a[2] : b[2];
+    return r;
+#endif
+}
+
+SIMD_CFUNC simd_float4 __tg_fmin(simd_float4 a, simd_float4 b) {
+#if BM_HAS_NEON && (defined(__aarch64__) || defined(__arm64__) || defined(__ARM_NEON__))
+    float32x4_t va = vld1q_f32((const float*)&a);
+    float32x4_t vb = vld1q_f32((const float*)&b);
+    float32x4_t vr = vminq_f32(va, vb);
+    simd_float4 r;
+    vst1q_f32((float*)&r, vr);
+    return r;
+#else
+    simd_float4 r;
+    r[0] = (a[0] < b[0]) ? a[0] : b[0];
+    r[1] = (a[1] < b[1]) ? a[1] : b[1];
+    r[2] = (a[2] < b[2]) ? a[2] : b[2];
+    r[3] = (a[3] < b[3]) ? a[3] : b[3];
+    return r;
+#endif
+}
+
+
 SIMD_CFUNC simd_double2 __tg_fmin(simd_double2 a, simd_double2 b) {
 #if BM_HAS_NEON && (defined(__aarch64__) || defined(__arm64__))
     // ARMv8 NEON supports float64x2_t directly
@@ -170,3 +243,4 @@ SIMD_CFUNC simd_double2 __tg_fmin(simd_double2 a, simd_double2 b) {
 SIMD_CFUNC float __tg_fmin(float a, float b) {
     return (a < b) ? a : b;
 }
+

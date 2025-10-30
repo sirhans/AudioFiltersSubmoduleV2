@@ -31,6 +31,18 @@ typedef __attribute__((__ext_vector_type__(2))) int simd_int2;
 typedef __attribute__((__ext_vector_type__(3))) int simd_int3;
 typedef __attribute__((__ext_vector_type__(4))) int simd_int4;
 
+typedef unsigned char          vUInt8  __attribute__((__vector_size__(16), __aligned__(16)));
+typedef signed char            vSInt8  __attribute__((__vector_size__(16), __aligned__(16)));
+typedef unsigned short         vUInt16 __attribute__((__vector_size__(16), __aligned__(16)));
+typedef signed short           vSInt16 __attribute__((__vector_size__(16), __aligned__(16)));
+typedef unsigned int           vUInt32 __attribute__((__vector_size__(16), __aligned__(16)));
+typedef signed int             vSInt32 __attribute__((__vector_size__(16), __aligned__(16)));
+typedef unsigned long long     vUInt64 __attribute__((__vector_size__(16), __aligned__(16)));
+typedef long long              vSInt64 __attribute__((__vector_size__(16), __aligned__(16)));
+typedef float                  vFloat  __attribute__((__vector_size__(16), __aligned__(16)));
+typedef double                 vDouble __attribute__((__vector_size__(16), __aligned__(16)));
+typedef unsigned int           vBool32 __attribute__((__vector_size__(16), __aligned__(16)));
+
 #if defined __LP64__
 typedef long simd_long1;
 #else
