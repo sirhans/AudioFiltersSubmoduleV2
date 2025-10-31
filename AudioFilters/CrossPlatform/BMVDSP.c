@@ -1983,7 +1983,22 @@ extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
     }
 }
 
+//Need test
+void bDSP_vthrsc(
+    const float* A, size_t IA,
+    const float* B,
+    const float* C,
+    float* D, size_t ID,
+    size_t N)
+{
+    const float b = B[0];
+    const float c = C[0];
 
+    for (size_t n = 0; n < N; ++n) {
+        const float a = A[n * IA];
+        D[n * ID] = (a >= b) ? c : -c;
+    }
+}
 
 
         

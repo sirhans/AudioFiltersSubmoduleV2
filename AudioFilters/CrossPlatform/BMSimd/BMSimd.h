@@ -93,6 +93,7 @@ static  simd_float3 SIMD_CFUNC simd_mul( simd_float4x3 __x,  simd_float4 __y) { 
 static  simd_float4 SIMD_CFUNC simd_mul( simd_float4x4 __x,  simd_float4 __y) {  simd_float4 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); __r = simd_muladd( __x.columns[2], __y[2],__r); __r = simd_muladd( __x.columns[3], __y[3],__r); return __r; }
 static simd_double2 SIMD_CFUNC simd_mul(simd_double2x2 __x, simd_double2 __y) { simd_double2 __r = __x.columns[0]*__y[0]; __r = simd_muladd( __x.columns[1], __y[1],__r); return __r; }
 
+//maxtrix
 static  simd_float2x2 SIMD_CFUNC simd_matrix(simd_float2  col0, simd_float2  col1) {  simd_float2x2 __r = { .columns[0] = col0, .columns[1] = col1 }; return __r; }
 static  simd_float2x3 SIMD_CFUNC simd_matrix(simd_float3  col0, simd_float3  col1) {  simd_float2x3 __r = { .columns[0] = col0, .columns[1] = col1 }; return __r; }
 static  simd_float2x4 SIMD_CFUNC simd_matrix(simd_float4  col0, simd_float4  col1) {  simd_float2x4 __r = { .columns[0] = col0, .columns[1] = col1 }; return __r; }

@@ -68,6 +68,8 @@
 
 #endif
     #define nil NULL
+    #define TRUE true
+    #define FALSE false
     #define Float64 double
     #define vDSP_vsmul bDSP_vsmul
     #define vDSP_vdbcon bDSP_vdbcon
@@ -167,6 +169,10 @@
     #define DSPSplitComplex BSPSplitComplex
     #define DSPComplex BSPComplex
     #define DSPDoubleComplex BSPDoubleComplex
+    
+    //Test
+    #define vDSP_vthrsc bDSP_vthrsc
+    #define SIZE_T_MAX SIZE_MAX
 
 #endif
 

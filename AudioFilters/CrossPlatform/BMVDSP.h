@@ -868,6 +868,13 @@ extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
                     N);
     */
 
+//Need test
+void bDSP_vthrsc(
+    const float* A, size_t IA,
+    const float* B,
+    const float* C,
+    float* D, size_t ID,
+            size_t N);
 
 #ifdef __cplusplus
 }
