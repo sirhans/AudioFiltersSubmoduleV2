@@ -248,6 +248,30 @@ static inline SIMD_CFUNC simd_float4 simd_clamp(simd_float4 x, simd_float4 min, 
   return simd_min(simd_max(x, min), max);
 }
 
+static inline SIMD_CFUNC simd_int2 simd_make_int2(int x, int y) {
+  simd_int2 result;
+  result.x = x;
+  result.y = y;
+  return result;
+}
+
+static inline SIMD_CFUNC simd_int3 simd_make_int3(int x, int y,int z) {
+    simd_int3 result;
+    result.x = x;
+    result.y = y;
+    result.z = z;
+    return result;
+}
+
+static inline SIMD_CFUNC simd_int4 simd_make_int4(int x, int y,int z,int w) {
+    simd_int4 result;
+    result.x = x;
+    result.y = y;
+    result.z = z;
+    result.w = w;
+    return result;
+}
+
 static inline SIMD_CFUNC simd_float2 simd_make_float2(float other) {
     simd_float2 result = { other, other };
     return result;
@@ -282,6 +306,13 @@ static inline SIMD_CFUNC simd_float4 simd_make_float4(float x, float y, float z,
   result.y = y;
   result.z = z;
   result.w = w;
+  return result;
+}
+
+static inline SIMD_CFUNC simd_double2 simd_make_double2(double x, double y) {
+  simd_double2 result;
+  result.x = x;
+  result.y = y;
   return result;
 }
 
