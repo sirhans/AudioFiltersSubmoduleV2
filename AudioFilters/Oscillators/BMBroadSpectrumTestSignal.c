@@ -7,10 +7,10 @@
 //
 
 #include "BMBroadSpectrumTestSignal.h"
-#include "BMUnitConversion.h"
+#include "../MathUtilities/BMUnitConversion.h"
 #include <stdlib.h>
 #include "../AudioFilter.h"
-#include "Constants.h"
+#include "../Constants.h"
 #include <limits.h>
 
 void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,

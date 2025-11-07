@@ -15,7 +15,7 @@
 #ifndef BMOscillatorArray_h
 #define BMOscillatorArray_h
 
-#include "BM2x2Matrix.h"
+#include "../MathUtilities/BM2x2Matrix.h"
 #include <stddef.h>
 
 #ifdef __cplusplus
