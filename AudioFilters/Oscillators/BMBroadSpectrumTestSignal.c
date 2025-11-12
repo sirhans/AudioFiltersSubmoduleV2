@@ -12,6 +12,7 @@
 #include "../AudioFilter.h"
 #include "../Constants.h"
 #include <limits.h>
+#include "tinymt32.h"
 
 void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 									float minFrequency,
@@ -31,8 +32,10 @@ void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 	
 	// if the calling function wants random phase, randomise them
 	if(randomPhase){
+		tinymt32_t randomGenerator;
+		tinymt32_init(&randomGenerator, 0);
 		for(size_t i=0; i<numOscillators; i++){
-			uint32_t randInt = arc4random();
+			uint32_t randInt = tinymt32_generate_uint32(&randomGenerator);
 			
 			phases[i] = (double)((long double)randInt / (long double)INT_MAX);
 			
