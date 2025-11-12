@@ -21,6 +21,11 @@ void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 									bool randomPhase,
 									bool logarithmic,
 									float sampleRate){
+	// warn about aliasing
+	if (maxFrequency > (sampleRate / 2.0f)){
+		printf("Warning: maxFrequency exceeds sampleRate / 2. This will cause aliasing.\n");
+	}
+	
 	This->outputBuffer = malloc(sizeof(double)*BM_BUFFER_CHUNK_SIZE);
 	
 	double *magnitudes = malloc(sizeof(double)*numOscillators);
@@ -53,10 +58,10 @@ void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 	} else {
 		for(size_t i=1; i<numOscillators; i++){
 			frequencies[i] = minFrequency * i;
-			// zero out frequencies above Nyquist to prevent aliasing
-			if (frequencies [i] > 0.99 * (sampleRate / 2.0)) {
+			// zero out frequencies above max frequency
+			if (frequencies [i] > maxFrequency) {
 				numOscillators--;
-				printf("Oscillator frequency %f exceeds Nyquist. Disabling this oscillator.", frequencies[i]);
+				printf("Oscillator frequency %f exceeds max frequency of %f. Disabling this oscillator.", frequencies[i], maxFrequency);
 			}
 		}
 	}
