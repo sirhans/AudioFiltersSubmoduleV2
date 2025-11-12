@@ -18,16 +18,13 @@ void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 									float maxFrequency,
 									size_t numOscillators,
 									bool randomPhase,
+									bool logarithmic,
 									float sampleRate){
 	This->outputBuffer = malloc(sizeof(double)*BM_BUFFER_CHUNK_SIZE);
 	
 	double *magnitudes = malloc(sizeof(double)*numOscillators);
 	double *phases = malloc(sizeof(double)*numOscillators);
 	double *frequencies = malloc(sizeof(double)*numOscillators);
-	
-	// set all the magnitudes to keep the volume under clipping
-	double mag = BM_DB_TO_GAIN(-11.0)/sqrt(numOscillators);
-	vDSP_vfillD(&mag, magnitudes, 1, numOscillators);
 	
 	// set all the phases to 0
 	vDSP_vclrD(phases, 1, numOscillators);
@@ -45,10 +42,25 @@ void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 	
 	// set the frequencies
 	frequencies[0] = minFrequency;
-	for(size_t i=1; i<numOscillators; i++){
-		float fraction = (float)i / (float)(numOscillators-1);
-		frequencies[i] = (double)BMLogInterp(minFrequency, maxFrequency, fraction);
+	if(logarithmic){
+		for(size_t i=1; i<numOscillators; i++){
+			float fraction = (float)i / (float)(numOscillators-1);
+			frequencies[i] = (double)BMLogInterp(minFrequency, maxFrequency, fraction);
+		}
+	} else {
+		for(size_t i=1; i<numOscillators; i++){
+			frequencies[i] = minFrequency * i;
+			// zero out frequencies above Nyquist to prevent aliasing
+			if (frequencies [i] > 0.99 * (sampleRate / 2.0)) {
+				numOscillators--;
+				printf("Oscillator frequency %f exceeds Nyquist. Disabling this oscillator.", frequencies[i]);
+			}
+		}
 	}
+	
+	// set all the magnitudes to keep the volume under clipping
+	double mag = BM_DB_TO_GAIN(-11.0)/sqrt(numOscillators);
+	vDSP_vfillD(&mag, magnitudes, 1, numOscillators);
 	
 	BMOscillatorArray_init(&This->array, magnitudes, phases, frequencies, sampleRate, numOscillators);
 	

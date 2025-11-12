@@ -33,6 +33,7 @@ void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
                                     float maxFrequency,
                                     size_t numOscillators,
                                     bool randomPhase,
+									bool logarithmic,
                                     float sampleRate);
 
 
