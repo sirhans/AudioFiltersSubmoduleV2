@@ -12,7 +12,7 @@
 #include "../AudioFilter.h"
 #include "../Constants.h"
 #include <limits.h>
-#include "tinymt32.h"
+#include "../MathUtilities/TinyMT/tinymt32.h"
 
 void BMBroadSpectrumTestSignal_init(BMBroadSpectrumTestSignal *This,
 									float minFrequency,
