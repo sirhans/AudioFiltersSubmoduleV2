@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 typedef enum {BMDITHER_16} DitherBitDepth;
-
+#define BMDITHER_SILENT_VOLUME 0.00001525878906 // 2^(-16) // if the volume is less than this, we consider it silent.
 
 typedef struct BMDither {
 	BMMultiLevelBiquad filter;
