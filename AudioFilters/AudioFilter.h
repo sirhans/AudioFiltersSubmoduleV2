@@ -21,8 +21,10 @@
 #if USE_ACCELERATE
     #include <Accelerate/Accelerate.h>
     #include <simd/simd.h>
-    #include <arm_neon.h>
     #include <MacTypes.h>
+
+#if defined(__ARM_NEON) && (defined(__ARM_PCS_VFP) || defined(__aarch64__))
+    #include <arm_neon.h>
 
     #define my_float64x2_t float64x2_t
     #define my_float64x2_t float64x2_t
@@ -30,6 +32,28 @@
     #define my_vfmaq_f64 vfmaq_f64
     #define my_vaddvq_f64 vaddvq_f64
     #define my_vgetq_lane_f64 vgetq_lane_f64
+#else
+    typedef struct { double val[2]; } my_float64x2_t;
+    static inline my_float64x2_t my_vdupq_n_f64(double x) {
+        my_float64x2_t v = { { x, x } };
+        return v;
+    }
+
+    static inline my_float64x2_t my_vfmaq_f64(my_float64x2_t a, my_float64x2_t b, my_float64x2_t c) {
+        my_float64x2_t v;
+        v.val[0] = a.val[0] + (b.val[0] * c.val[0]);
+        v.val[1] = a.val[1] + (b.val[1] * c.val[1]);
+        return v;
+    }
+
+    static inline double my_vaddvq_f64(my_float64x2_t v) {
+        return v.val[0] + v.val[1];
+    }
+
+    static inline double my_vgetq_lane_f64(my_float64x2_t v, int lane) {
+        return v.val[lane];
+    }
+#endif
 #else
     #include "../AudioFilters/CrossPlatform/BMVDSP.h"  // your custom vDSP replacement
     #include "CrossPlatform/BMSimd/BMSimd.h"
