@@ -41,17 +41,19 @@ extern "C" {
         
         
         // initialise the filters
-        BMMultiLevelBiquad_init(&This->lp,
+        BMMultiLevelSVF_init(&This->lp,
                                 numLevels,
                                 sampleRate,
-                                stereo,
-                                true,false);
-        BMMultiLevelBiquad_init(&This->hp,
+                                stereo);
+        BMMultiLevelSVF_init(&This->hp,
                                 numLevels,
                                 sampleRate,
-                                stereo,
-                                true,false);
+                                stereo);
         
+        
+        // filters used only for plotting the transfer functions
+        BMMultiLevelBiquad_init(&This->plotFilters[0], numLevels, sampleRate, false, false, false);
+        BMMultiLevelBiquad_init(&This->plotFilters[1], numLevels, sampleRate, false, false, false);
         
         BMCrossover_setCutoff(This, cutoff);
     }
@@ -65,8 +67,10 @@ extern "C" {
      * Free memory used by the filters
      */
     void BMCrossover_free(BMCrossover *This){
-        BMMultiLevelBiquad_free(&This->lp);
-        BMMultiLevelBiquad_free(&This->hp);
+        BMMultiLevelSVF_free(&This->lp);
+        BMMultiLevelSVF_free(&This->hp);
+        BMMultiLevelBiquad_free(&This->plotFilters[0]);
+        BMMultiLevelBiquad_free(&This->plotFilters[1]);
     }
     
     
@@ -84,13 +88,15 @@ extern "C" {
             // 2nd order butterworth filters
             //
             // lowpass 4th order
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->lp,
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->lp,
                                                           cutoff,
                                                           0);
             // highpass fourth order
-            BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->hp,
+            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->hp,
                                                           cutoff,
                                                           0);
+            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[0], cutoff, 0);
+            BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->plotFilters[1], cutoff, 0);
         } else {
             // the second order crossover uses 2nd order linkwitz-riley
             // filters. The transfer function of these filters is
@@ -98,12 +104,14 @@ extern "C" {
             // filters. However, the vDSP library only has machine
             // optimised code for biquads so don't want to implement
             // this as a cascade of first-order filters
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->lp,
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->lp,
                                                   cutoff,
                                                   0);
-            BMMultiLevelBiquad_setLinkwitzRileyHP(&This->hp,
+            BMMultiLevelSVF_setLinkwitzRileyHP(&This->hp,
                                                   cutoff,
                                                   0);
+            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[0], cutoff, 0);
+            BMMultiLevelBiquad_setLinkwitzRileyHP(&This->plotFilters[1], cutoff, 0);
         }
     }
     
@@ -127,11 +135,11 @@ extern "C" {
 								   size_t numSamples){
 		assert(This->stereo);
 		
-		BMMultiLevelBiquad_processBufferStereo(&This->lp,
+		BMMultiLevelSVF_processBufferStereo(&This->lp,
 											   inL, inR,
 											   lowpassL, lowpassR,
 											   numSamples);
-		BMMultiLevelBiquad_processBufferStereo(&This->hp,
+		BMMultiLevelSVF_processBufferStereo(&This->hp,
 											   inL, inR,
 											   highpassL, highpassR,
 											   numSamples);
@@ -159,11 +167,11 @@ extern "C" {
         assert(!This->stereo);
         
         
-        BMMultiLevelBiquad_processBufferMono(&This->lp,
+        BMMultiLevelSVF_processBufferMono(&This->lp,
                                              input,
                                              lowpass,
                                              numSamples);
-        BMMultiLevelBiquad_processBufferMono(&This->hp,
+        BMMultiLevelSVF_processBufferMono(&This->hp,
                                              input,
                                              highpass,
                                              numSamples);
@@ -205,8 +213,8 @@ extern "C" {
                                       float* magLow,
                                       float* magHigh,
                                   size_t length){
-        BMMultiLevelBiquad_tfMagVector(&This->lp, frequencies, magLow, length);
-        BMMultiLevelBiquad_tfMagVector(&This->hp, frequencies, magHigh, length);
+        BMMultiLevelBiquad_tfMagVector(&This->plotFilters[0], frequencies, magLow, length);
+        BMMultiLevelBiquad_tfMagVector(&This->plotFilters[1], frequencies, magHigh, length);
     }
     
     
@@ -240,26 +248,22 @@ extern "C" {
         
         
         // initialise the filters
-        BMMultiLevelBiquad_init(&This->low,
+        BMMultiLevelSVF_init(&This->low,
                                 2*levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
-        BMMultiLevelBiquad_init(&This->midAndHigh,
+                                stereo);
+        BMMultiLevelSVF_init(&This->midAndHigh,
                                 levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
-        BMMultiLevelBiquad_init(&This->mid,
+                                stereo);
+        BMMultiLevelSVF_init(&This->mid,
                                 levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
-        BMMultiLevelBiquad_init(&This->high,
+                                stereo);
+        BMMultiLevelSVF_init(&This->high,
                                 levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
+                                stereo);
         
         // init filters for plotting
         BMMultiLevelBiquad_init(&This->plotFilters[0],
@@ -287,10 +291,10 @@ extern "C" {
      */
     void BMCrossover3way_free(BMCrossover3way *This){
         // audio filters
-        BMMultiLevelBiquad_free(&This->low);
-        BMMultiLevelBiquad_free(&This->midAndHigh);
-        BMMultiLevelBiquad_free(&This->mid);
-        BMMultiLevelBiquad_free(&This->high);
+        BMMultiLevelSVF_free(&This->low);
+        BMMultiLevelSVF_free(&This->midAndHigh);
+        BMMultiLevelSVF_free(&This->mid);
+        BMMultiLevelSVF_free(&This->high);
         
         // plot filters
         for(size_t i=0; i<3; i++)
@@ -303,8 +307,8 @@ extern "C" {
     void BMCrossover3way_setCutoff1(BMCrossover3way *This, float fc){
         if(This->fourthOrder){
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->low, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->midAndHigh, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->low, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->midAndHigh, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[0], fc, 0);
@@ -312,8 +316,8 @@ extern "C" {
         }
         else {
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->low, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyHP(&This->midAndHigh, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->low, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyHP(&This->midAndHigh, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[0], fc, 0);
@@ -331,9 +335,9 @@ extern "C" {
         // as the mid and high frequencies when we add it all back together
         if(This->fourthOrder){
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->mid, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->low, fc, 2);
-            BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->high, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->mid, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->low, fc, 2);
+            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->high, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[1], fc, 2);
@@ -341,9 +345,9 @@ extern "C" {
         }
         else {
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->mid, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->low, fc, 1);
-            BMMultiLevelBiquad_setLinkwitzRileyHP(&This->high, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->mid, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->low, fc, 1);
+            BMMultiLevelSVF_setLinkwitzRileyHP(&This->high, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[1], fc, 1);
@@ -362,25 +366,25 @@ extern "C" {
         
         // split the low part of the signal off, processing it through
         // both crossovers to preserve phase
-        BMMultiLevelBiquad_processBufferStereo(&This->low,
+        BMMultiLevelSVF_processBufferStereo(&This->low,
                                                inL, inR,
                                                lowL, lowR,
                                                numSamples);
         
         // split the mid and high, buffer to mid
-        BMMultiLevelBiquad_processBufferStereo(&This->midAndHigh,
+        BMMultiLevelSVF_processBufferStereo(&This->midAndHigh,
                                                inL, inR,
                                                midL, midR,
                                                numSamples);
         
         // split the high from the mid
-        BMMultiLevelBiquad_processBufferStereo(&This->high,
+        BMMultiLevelSVF_processBufferStereo(&This->high,
                                                midL, midR,
                                                highL, highR,
                                                numSamples);
         
         // remove the high from the mid
-        BMMultiLevelBiquad_processBufferStereo(&This->mid,
+        BMMultiLevelSVF_processBufferStereo(&This->mid,
                                                midL, midR,
                                                midL, midR,
                                                numSamples);
@@ -399,25 +403,25 @@ extern "C" {
         
         // split the low part of the signal off, processing it through
         // both crossovers to preserve phase
-        BMMultiLevelBiquad_processBufferMono(&This->low,
+        BMMultiLevelSVF_processBufferMono(&This->low,
                                                inL,
                                                lowL,
                                                numSamples);
         
         // split the mid and high, buffer to mid
-        BMMultiLevelBiquad_processBufferMono(&This->midAndHigh,
+        BMMultiLevelSVF_processBufferMono(&This->midAndHigh,
                                                inL,
                                                midL,
                                                numSamples);
         
         // split the high from the mid
-        BMMultiLevelBiquad_processBufferMono(&This->high,
+        BMMultiLevelSVF_processBufferMono(&This->high,
                                                midL,
                                                highL,
                                                numSamples);
         
         // remove the high from the mid
-        BMMultiLevelBiquad_processBufferMono(&This->mid,
+        BMMultiLevelSVF_processBufferMono(&This->mid,
                                                midL,
                                                midL,
                                                numSamples);
@@ -482,36 +486,30 @@ extern "C" {
         
         
         // initialise the filters
-        BMMultiLevelBiquad_init(&This->band1,
+        BMMultiLevelSVF_init(&This->band1,
                                 3*levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
-        BMMultiLevelBiquad_init(&This->bands2to4,
+                                stereo);
+        BMMultiLevelSVF_init(&This->bands2to4,
                                 levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
-        BMMultiLevelBiquad_init(&This->band2,
+                                stereo);
+        BMMultiLevelSVF_init(&This->band2,
                                 2*levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
-        BMMultiLevelBiquad_init(&This->bands3to4,
+                                stereo);
+        BMMultiLevelSVF_init(&This->bands3to4,
                                 levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
-        BMMultiLevelBiquad_init(&This->band3,
+                                stereo);
+        BMMultiLevelSVF_init(&This->band3,
                                 levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
-        BMMultiLevelBiquad_init(&This->band4,
+                                stereo);
+        BMMultiLevelSVF_init(&This->band4,
                                 levelsPerFilter,
                                 sampleRate,
-                                stereo,
-                                false,false);
+                                stereo);
         
         // init filters for plotting
         BMMultiLevelBiquad_init(&This->plotFilters[0],
@@ -542,12 +540,12 @@ extern "C" {
      *BMCrossover4way_free
      */
     void BMCrossover4way_free(BMCrossover4way *This){
-        BMMultiLevelBiquad_free(&This->band1);
-        BMMultiLevelBiquad_free(&This->band2);
-        BMMultiLevelBiquad_free(&This->band3);
-        BMMultiLevelBiquad_free(&This->band4);
-        BMMultiLevelBiquad_free(&This->bands2to4);
-        BMMultiLevelBiquad_free(&This->bands3to4);
+        BMMultiLevelSVF_free(&This->band1);
+        BMMultiLevelSVF_free(&This->band2);
+        BMMultiLevelSVF_free(&This->band3);
+        BMMultiLevelSVF_free(&This->band4);
+        BMMultiLevelSVF_free(&This->bands2to4);
+        BMMultiLevelSVF_free(&This->bands3to4);
         
         for(size_t i=0; i<4; i++)
             BMMultiLevelBiquad_free(&This->plotFilters[i]);
@@ -557,8 +555,8 @@ extern "C" {
     void BMCrossover4way_setCutoff1(BMCrossover4way *This, float fc){
         if(This->fourthOrder){
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->band1, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->bands2to4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band1, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->bands2to4, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[0], fc, 0);
@@ -566,8 +564,8 @@ extern "C" {
         }
         else {
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->band1, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyHP(&This->bands2to4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band1, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyHP(&This->bands2to4, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[0], fc, 0);
@@ -584,9 +582,9 @@ extern "C" {
         // as the mid and high frequencies when we add it all back together
         if(This->fourthOrder){
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->band2, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->band1, fc, 2);
-            BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->bands3to4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band2, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band1, fc, 2);
+            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->bands3to4, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[1], fc, 2);
@@ -594,9 +592,9 @@ extern "C" {
         }
         else {
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->band2, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->band1, fc, 1);
-            BMMultiLevelBiquad_setLinkwitzRileyHP(&This->bands3to4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band2, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band1, fc, 1);
+            BMMultiLevelSVF_setLinkwitzRileyHP(&This->bands3to4, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[1], fc, 1);
@@ -613,10 +611,10 @@ extern "C" {
         // as the mid and high frequencies when we add it all back together
         if(This->fourthOrder){
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->band3, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->band2, fc, 2);
-            BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->band1, fc, 4);
-            BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->band4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band3, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band2, fc, 2);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band1, fc, 4);
+            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->band4, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[2], fc, 2);
@@ -624,10 +622,10 @@ extern "C" {
         }
         else {
             // for audio
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->band3, fc, 0);
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->band2, fc, 1);
-            BMMultiLevelBiquad_setLinkwitzRileyLP(&This->band1, fc, 2);
-            BMMultiLevelBiquad_setLinkwitzRileyHP(&This->band4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band3, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band2, fc, 1);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band1, fc, 2);
+            BMMultiLevelSVF_setLinkwitzRileyHP(&This->band4, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[2], fc, 1);
@@ -650,37 +648,37 @@ extern "C" {
         
         // split the low part of the signal off, processing it through
         // all three crossovers to preserve phase
-        BMMultiLevelBiquad_processBufferStereo(&This->band1,
+        BMMultiLevelSVF_processBufferStereo(&This->band1,
                                                inL, inR,
                                                band1L, band1R,
                                                numSamples);
         
         // split bands 2-4, buffering into 2
-        BMMultiLevelBiquad_processBufferStereo(&This->bands2to4,
+        BMMultiLevelSVF_processBufferStereo(&This->bands2to4,
                                                inL, inR,
                                                band2L, band2R,
                                                numSamples);
         
         // split bands 3-4 off from band 2
-        BMMultiLevelBiquad_processBufferStereo(&This->bands3to4,
+        BMMultiLevelSVF_processBufferStereo(&This->bands3to4,
                                                band2L, band2R,
                                                band3L, band3R,
                                                numSamples);
         
         // remove bands 3-4 from band 2
-        BMMultiLevelBiquad_processBufferStereo(&This->band2,
+        BMMultiLevelSVF_processBufferStereo(&This->band2,
                                                band2L, band2R,
                                                band2L, band2R,
                                                numSamples);
         
         // split band 4 off from band 3
-        BMMultiLevelBiquad_processBufferStereo(&This->band4,
+        BMMultiLevelSVF_processBufferStereo(&This->band4,
                                                band3L, band3R,
                                                band4L, band4R,
                                                numSamples);
         
         // remove band 4 from band 3
-        BMMultiLevelBiquad_processBufferStereo(&This->band3,
+        BMMultiLevelSVF_processBufferStereo(&This->band3,
                                                band3L, band3R,
                                                band3L, band3R,
                                                numSamples);
@@ -701,22 +699,22 @@ extern "C" {
         
         // split the low part of the signal off, processing it through
         // all three crossovers to preserve phase
-		BMMultiLevelBiquad_processBufferMono(&This->band1, in, band1, numSamples);
+		BMMultiLevelSVF_processBufferMono(&This->band1, in, band1, numSamples);
         
         // split bands 2-4, buffering into 2
-		BMMultiLevelBiquad_processBufferMono(&This->bands2to4, in, band2, numSamples);
+		BMMultiLevelSVF_processBufferMono(&This->bands2to4, in, band2, numSamples);
         
         // split bands 3-4 off from band 2
-		BMMultiLevelBiquad_processBufferMono(&This->bands3to4, band2, band3, numSamples);
+		BMMultiLevelSVF_processBufferMono(&This->bands3to4, band2, band3, numSamples);
         
         // remove bands 3-4 from band 2
-		BMMultiLevelBiquad_processBufferMono(&This->band2, band2, band2, numSamples);
+		BMMultiLevelSVF_processBufferMono(&This->band2, band2, band2, numSamples);
         
         // split band 4 off from band 3
-		BMMultiLevelBiquad_processBufferMono(&This->band4, band3, band4, numSamples);
+		BMMultiLevelSVF_processBufferMono(&This->band4, band3, band4, numSamples);
         
         // remove band 4 from band 3
-		BMMultiLevelBiquad_processBufferMono(&This->band3, band3, band3, numSamples);
+		BMMultiLevelSVF_processBufferMono(&This->band3, band3, band3, numSamples);
     }
 	
 	

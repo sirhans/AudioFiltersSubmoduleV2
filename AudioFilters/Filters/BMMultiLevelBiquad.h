@@ -133,6 +133,13 @@ void BMMultiLevelBiquad_setBell(BMMultiLevelBiquad* This, float fc, float bandwi
 float BMMultiLevelBiquad_QToBW(BMMultiLevelBiquad *This, float Q, float fc);
 
 /*!
+ *BMMultiLevelBiquad_QToBWAtSampleRate
+ *
+ * @abstract Same as BMMultiLevelBiquad_QToBW but without a filter struct.
+ */
+float BMMultiLevelBiquad_QToBWAtSampleRate(float Q, float fc, float sampleRate);
+
+/*!
  *BMMultiLevelBiquad_setBellQ
  *
  * @abstract sets a bell filter with frequency, Q, and gain

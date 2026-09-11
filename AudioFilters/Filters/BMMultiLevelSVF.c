@@ -903,6 +903,88 @@ void BMMultiLevelSVF_setBypass(BMMultiLevelSVF *This, size_t level){
 
 
 
+
+/*
+ * Biquad-compatible bells.
+ *
+ * BMMultiLevelBiquad's bells use Rusty Allred's formulae with the bandwidth
+ * BW = BMMultiLevelBiquad_QToBW(Q, fc) and alpha = tan(pi BW / fs). Matching
+ * their width on the SVF bell (which calls setCoefficientsHelper with Q * A)
+ * requires
+ *
+ *   Q_svf = sin(2 pi fc / fs) / (2 A tan(pi BW / fs)),  A = 10^(|gain dB| / 40)
+ *
+ * verified numerically against the biquad responses (max 0.004 dB
+ * difference for bells between 85 Hz and 6 kHz, boosts and cuts).
+ */
+static double BMMultiLevelSVF_QFromBiquadQ(BMMultiLevelSVF *This, double fc, double biquadQ, double relativeGainDb){
+	double fs = This->sampleRate;
+	double bw = BMMultiLevelBiquad_QToBWAtSampleRate((float)biquadQ, (float)fc, (float)fs);
+	double A = pow(10.0, fabs(relativeGainDb) / 40.0);
+	return sin(2.0 * M_PI * fc / fs) / (2.0 * A * tan(M_PI * bw / fs));
+}
+
+
+
+void BMMultiLevelSVF_setBellBiquadQ(BMMultiLevelSVF *This, double fc, double gainDb, double biquadQ, size_t level){
+	BMMultiLevelSVF_setBell(This, fc, gainDb, BMMultiLevelSVF_QFromBiquadQ(This, fc, biquadQ, gainDb), level);
+}
+
+
+
+void BMMultiLevelSVF_setBellWithSkirtBiquadQ(BMMultiLevelSVF *This, double fc, double bellGainDb, double skirtGainDb, double biquadQ, size_t level){
+	BMMultiLevelSVF_setBellWithSkirt(This, fc, bellGainDb, skirtGainDb,
+									 BMMultiLevelSVF_QFromBiquadQ(This, fc, biquadQ, bellGainDb - skirtGainDb), level);
+}
+
+
+
+/*
+ * Linkwitz-Riley crossover filters.
+ *
+ * Second order: a first-order Butterworth squared, i.e. one section with
+ * Q = 1/2, -6 dB at fc. The lowpass and highpass sum to an allpass only if
+ * one of them is inverted, and as in BMMultiLevelBiquad_setLinkwitzRileyHP
+ * the inversion is built into the highpass (m0 = -1).
+ *
+ * Fourth order: a second-order Butterworth (Q = 1/sqrt2) squared, on two
+ * levels. Lowpass + highpass sums to an allpass without inversion.
+ */
+void BMMultiLevelSVF_setLinkwitzRileyLP(BMMultiLevelSVF *This, double fc, size_t level){
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, 0.5, level);
+}
+
+
+
+void BMMultiLevelSVF_setLinkwitzRileyHP(BMMultiLevelSVF *This, double fc, size_t level){
+	assert(level < This->numLevels);
+	
+	BMLock_lock(&This->lock);
+	BMMultiLevelSVF_setCoefficientsHelper(This, fc, 0.5, level);
+	This->m0_pending[level] = -1.0;
+	This->m1_pending[level] = 0.0;
+	This->m2_pending[level] = 0.0;
+	BMLock_unlock(&This->lock);
+	
+	This->shouldUpdateParam = true;
+}
+
+
+
+void BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(BMMultiLevelSVF *This, double fc, size_t firstLevel){
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, M_SQRT1_2, firstLevel);
+	BMMultiLevelSVF_setLowpass12dBwithQ(This, fc, M_SQRT1_2, firstLevel + 1);
+}
+
+
+
+void BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(BMMultiLevelSVF *This, double fc, size_t firstLevel){
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, M_SQRT1_2, firstLevel);
+	BMMultiLevelSVF_setHighpass12dBwithQ(This, fc, M_SQRT1_2, firstLevel + 1);
+}
+
+
+
 /*
  * RBJ cookbook shelving filters.
  *

@@ -27,14 +27,24 @@ extern "C" {
 #define BMCrossover_h
 
 #include "BMMultiLevelBiquad.h"
+#include "BMMultiLevelSVF.h"
 #include "Constants.h"
 
 
 
 
+/*
+ * The audio is filtered by state-variable filters (BMMultiLevelSVF) rather
+ * than biquads: at low crossover frequencies the float32 direct-form biquads
+ * produce a signal-dependent noise floor from their near-DC poles. The
+ * responses are identical. The biquads that remain are only used to plot the
+ * transfer functions.
+ */
 typedef struct BMCrossover {
-	BMMultiLevelBiquad lp;
-	BMMultiLevelBiquad hp;
+	BMMultiLevelSVF lp;
+	BMMultiLevelSVF hp;
+	// filters for graph plotting
+	BMMultiLevelBiquad plotFilters [2];
 	bool stereo;
 	bool fourthOrder;
 } BMCrossover;
@@ -43,10 +53,10 @@ typedef struct BMCrossover {
 
 typedef struct BMCrossover3way {
 	// filters for audio processing
-	BMMultiLevelBiquad low;
-	BMMultiLevelBiquad midAndHigh;
-	BMMultiLevelBiquad mid;
-	BMMultiLevelBiquad high;
+	BMMultiLevelSVF low;
+	BMMultiLevelSVF midAndHigh;
+	BMMultiLevelSVF mid;
+	BMMultiLevelSVF high;
 	
 	// filters for graph plotting
 	BMMultiLevelBiquad plotFilters [3];
@@ -59,12 +69,12 @@ typedef struct BMCrossover3way {
 
 typedef struct BMCrossover4way {
 	// filters for audio processing
-	BMMultiLevelBiquad band1;
-	BMMultiLevelBiquad bands2to4;
-	BMMultiLevelBiquad band2;
-	BMMultiLevelBiquad bands3to4;
-	BMMultiLevelBiquad band3;
-	BMMultiLevelBiquad band4;
+	BMMultiLevelSVF band1;
+	BMMultiLevelSVF bands2to4;
+	BMMultiLevelSVF band2;
+	BMMultiLevelSVF bands3to4;
+	BMMultiLevelSVF band3;
+	BMMultiLevelSVF band4;
 	
 	// filters for graph plotting
 	BMMultiLevelBiquad plotFilters [4];

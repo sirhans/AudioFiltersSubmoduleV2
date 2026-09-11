@@ -58,7 +58,7 @@ extern "C" {
         BMReverbPointersToNull(This);
         
         // initialize the main filter setup
-        BMMultiLevelBiquad_init(&This->mainFilter, 3, sampleRate, true, true, false);
+        BMMultiLevelSVF_init(&This->mainFilter, 3, sampleRate, true);
 		
 		// initialize the wet/dry mixer
 		BMWetDryMixer_init(&This->wetDryMixer,sampleRate);
@@ -125,7 +125,7 @@ extern "C" {
 										 numSamplesProcessing);
 
 			// filter the wet signal
-			BMMultiLevelBiquad_processBufferStereo(&This->mainFilter,
+			BMMultiLevelSVF_processBufferStereo(&This->mainFilter,
 												   outputL, outputR,
 												   outputL, outputR,
 												   numSamplesProcessing);
@@ -655,7 +655,7 @@ extern "C" {
     // filter on the wet signal.  (that's 6db cutoff slope).  This does
     // not affect the dry signal at all.
     void BMReverbSetHighPassFC(struct BMReverb *This, float fc){
-        BMMultiLevelBiquad_setHighPass6db(&This->mainFilter, fc, 0);
+        BMMultiLevelSVF_setHighpass6dB(&This->mainFilter, fc, 0);
     }
     
     
@@ -663,13 +663,14 @@ extern "C" {
     // filter on the wet signal.  (that's 6db cutoff slope).  This does
     // not affect the dry signal at all.
     void BMReverbSetLowPassFC(struct BMReverb *This, float fc){
-        BMMultiLevelBiquad_setLowPass6db(&This->mainFilter, fc, 1);
+        BMMultiLevelSVF_setLowpass6dB(&This->mainFilter, fc, 1);
     }
 	
 	
 	
 	void BMReverbSetMidScoopGain(struct BMReverb *This, float gainDb){
-		BMMultiLevelBiquad_setBellQ(&This->mainFilter, BMREVERB_MID_SCOOP_FC, BMREVERB_MID_SCOOP_Q, gainDb, 2);
+		// biquad-compatible Q so the scoop keeps the width it had as a biquad
+		BMMultiLevelSVF_setBellBiquadQ(&This->mainFilter, BMREVERB_MID_SCOOP_FC, gainDb, BMREVERB_MID_SCOOP_Q, 2);
 	}
     
     
@@ -689,7 +690,7 @@ extern "C" {
         free(This->leftOutputTemp);
         free(This->dryL);
         free(This->dryR);
-        BMMultiLevelBiquad_free(&This->mainFilter);
+        BMMultiLevelSVF_free(&This->mainFilter);
         
         BMReverbPointersToNull(This);
     }

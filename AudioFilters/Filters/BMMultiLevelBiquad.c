@@ -713,17 +713,21 @@ void BMMultiLevelBiquad_setLowShelfAdjustableSlope(BMMultiLevelBiquad *This, flo
  * @param Q the Q factor of the filter
  * @param fc the cutoff frequency of the filter
  */
+float BMMultiLevelBiquad_QToBWAtSampleRate(float Q, float fc, float sampleRate){
+	float nyq = sampleRate / 2.0f;
+	float c = fc / nyq;
+	if(Q <= 1.0f)
+		// for fc=0 return fc/Q. For fc=Nyquist return 0.5*fc
+		// note that this means the Q does nothing when fc=Nyquist, but it still
+		// works ok when fc is near Nyquist.
+		return (fc/Q) * powf(0.5f*Q,c);
+	// else Q > 1.0f
+	// for fc=0 return fc/Q. For fc=Nyquist return 0.66*fc/Q
+	return (fc / Q) * powf(0.66f,c);
+}
+
 float BMMultiLevelBiquad_QToBW(BMMultiLevelBiquad *This, float Q, float fc){
-    float nyq = This->sampleRate / 2.0f;
-    float c = fc / nyq;
-    if(Q <= 1.0f)
-        // for fc=0 return fc/Q. For fc=Nyquist return 0.5*fc
-        // note that this means the Q does nothing when fc=Nyquist, but it still
-        // works ok when fc is near Nyquist.
-        return (fc/Q) * powf(0.5f*Q,c);
-    // else Q > 1.0f
-    // for fc=0 return fc/Q. For fc=Nyquist return 0.66*fc/Q
-    return (fc / Q) * powf(0.66f,c);
+	return BMMultiLevelBiquad_QToBWAtSampleRate(Q, fc, This->sampleRate);
 }
 
 

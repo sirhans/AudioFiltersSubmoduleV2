@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include "BMFirstOrderArray.h"
 #include "BMMultiLevelBiquad.h"
+#include "BMMultiLevelSVF.h"
 #include "BMWetDryMixer.h"
 #include "BMStereoWidener.h"
 #include <math.h>
@@ -59,7 +60,11 @@ typedef struct BMReverb {
 	bool settingsQueuedForUpdate, preDelayUpdate;
 	BMFirstOrderArray4x4 HSFArray;
 	BMFirstOrderArray4x4 LSFArray;
-	BMMultiLevelBiquad mainFilter;
+	// wet-output tone filter (highpass, lowpass, mid scoop). A state-variable
+	// filter rather than a biquad: the 30 Hz highpass puts a pole so close to
+	// DC that the float32 direct-form biquad produces an audible-level noise
+	// floor; the SVF does not.
+	BMMultiLevelSVF mainFilter;
 	BMWetDryMixer wetDryMixer;
 	BMStereoWidener stereoWidth;
 } BMReverb;

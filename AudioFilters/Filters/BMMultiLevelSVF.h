@@ -260,6 +260,63 @@ void BMMultiLevelSVF_setHighpass6dB(BMMultiLevelSVF *This, double fc, size_t lev
 void BMMultiLevelSVF_setBypass(BMMultiLevelSVF *This, size_t level);
 
 /*!
+ *BMMultiLevelSVF_setBellBiquadQ
+ *
+ * @abstract Bell filter with the same width as BMMultiLevelBiquad_setBellQ
+ * with the same Q. The biquad bells (Rusty Allred's formulae) map Q to a
+ * bandwidth through BMMultiLevelBiquad_QToBW, so for the same nominal Q they
+ * are wider than the SVF (Simper / RBJ) bells of setBell. Use this when
+ * replacing a biquad bell so the voicing does not change.
+ *
+ * @param fc       centre frequency in Hz
+ * @param gainDb   bell gain in decibels
+ * @param biquadQ  the Q you would have given to BMMultiLevelBiquad_setBellQ
+ */
+void BMMultiLevelSVF_setBellBiquadQ(BMMultiLevelSVF *This, double fc, double gainDb, double biquadQ, size_t level);
+
+/*!
+ *BMMultiLevelSVF_setBellWithSkirtBiquadQ
+ *
+ * @abstract Same as setBellWithSkirt but with the width of
+ * BMMultiLevelBiquad_setBellWithSkirt for the same Q. See setBellBiquadQ.
+ */
+void BMMultiLevelSVF_setBellWithSkirtBiquadQ(BMMultiLevelSVF *This, double fc, double bellGainDb, double skirtGainDb, double biquadQ, size_t level);
+
+/*!
+ *BMMultiLevelSVF_setLinkwitzRileyLP
+ *
+ * @abstract Second-order Linkwitz-Riley lowpass (Butterworth first order
+ * squared, Q = 1/2, -6 dB at fc) on one level. Same response as
+ * BMMultiLevelBiquad_setLinkwitzRileyLP.
+ */
+void BMMultiLevelSVF_setLinkwitzRileyLP(BMMultiLevelSVF *This, double fc, size_t level);
+
+/*!
+ *BMMultiLevelSVF_setLinkwitzRileyHP
+ *
+ * @abstract Second-order Linkwitz-Riley highpass on one level, with the
+ * output sign inverted exactly like BMMultiLevelBiquad_setLinkwitzRileyHP, so
+ * that lowpass + highpass sums to an allpass.
+ */
+void BMMultiLevelSVF_setLinkwitzRileyHP(BMMultiLevelSVF *This, double fc, size_t level);
+
+/*!
+ *BMMultiLevelSVF_setLinkwitzRileyLP4thOrder
+ *
+ * @abstract Fourth-order Linkwitz-Riley lowpass (two cascaded Butterworth
+ * second-order sections) on levels firstLevel and firstLevel + 1.
+ */
+void BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(BMMultiLevelSVF *This, double fc, size_t firstLevel);
+
+/*!
+ *BMMultiLevelSVF_setLinkwitzRileyHP4thOrder
+ *
+ * @abstract Fourth-order Linkwitz-Riley highpass on levels firstLevel and
+ * firstLevel + 1. No sign inversion is needed at fourth order.
+ */
+void BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(BMMultiLevelSVF *This, double fc, size_t firstLevel);
+
+/*!
  *BMMultiLevelSVF_setAllpass
  */
 void BMMultiLevelSVF_setAllpass(BMMultiLevelSVF *This, double fc, double q, size_t level);
