@@ -36,6 +36,13 @@ typedef struct BMDownsampler {
  * @stereo set true for stereo AA filters; false for mono
  * @param  downsampleFactor supported values: 2^n
  */
+// Run the final 2x stage in double precision (see
+// BMIIRDownsampler2x_setDoublePrecision). Default on: it removes the float32
+// rounding tones near fs/4 and fs/2 of the output rate at no measurable cost.
+#ifndef BM_DOWNSAMPLER_DOUBLE_LAST_STAGE
+#define BM_DOWNSAMPLER_DOUBLE_LAST_STAGE 1
+#endif
+
 void BMDownsampler_init(BMDownsampler* This, bool stereo, size_t downsampleFactor, enum resamplerType type);
 
 
@@ -81,6 +88,14 @@ void BMDownsampler_processBufferStereoOddInputLength(BMDownsampler *This, float*
 
 
 void BMDownsampler_free(BMDownsampler* This);
+
+/*!
+ *BMDownsampler_setDoublePrecisionLastStage
+ *
+ * @abstract Switch double-precision processing of the final 2x stage on or
+ * off at runtime (default: BM_DOWNSAMPLER_DOUBLE_LAST_STAGE).
+ */
+void BMDownsampler_setDoublePrecisionLastStage(BMDownsampler* This, bool doublePrecision);
 
 
 /*!

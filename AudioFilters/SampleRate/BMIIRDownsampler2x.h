@@ -21,6 +21,12 @@ typedef struct BMIIRDownsampler2x {
     float *b1L, *b2L, *b1R, *b2R;
     size_t numCoefficients,numBiquadStages;
     bool stereo;
+    // optional double-precision processing (see setDoublePrecision): vDSP
+    // double biquads built from the same allpass coefficients, and double
+    // work buffers
+    bool doublePrecision;
+    vDSP_biquadm_SetupD evenD, oddD;
+    double *db1L, *db2L, *db1R, *db2R;
 } BMIIRDownsampler2x;
 
 
@@ -38,6 +44,20 @@ size_t BMIIRDownsampler2x_init (BMIIRDownsampler2x *This,
                                 bool stereo);
 
 void BMIIRDownsampler2x_free (BMIIRDownsampler2x *This);
+
+/*!
+ *BMIIRDownsampler2x_setDoublePrecision
+ *
+ * @abstract Process this stage in double precision. The polyphase allpass
+ * sections have poles close to the unit circle, and in float32 their
+ * rounding noise is correlated with the signal, producing image tones at
+ * fs/4 +- f and fs/2 - f of the output rate about 150 dB below the signal.
+ * In double those tones disappear. The transfer function is unchanged. Meant
+ * for the final stage of a multi-stage downsampler, where the images land in
+ * the audio band; the earlier stages' images are removed by the later
+ * stages. Costs about the same as the float version on Apple silicon.
+ */
+void BMIIRDownsampler2x_setDoublePrecision (BMIIRDownsampler2x *This, bool doublePrecision);
 
 void BMIIRDownsampler2x_setCoefs (BMIIRDownsampler2x *This, const double* coef_arr);
 

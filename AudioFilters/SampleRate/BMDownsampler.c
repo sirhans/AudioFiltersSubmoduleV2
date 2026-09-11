@@ -54,6 +54,9 @@ extern "C" {
                 BMIIRDownsampler2x_init(&This->downsamplers2x[This->numStages - i - 1], BM_DOWNSAMPLER_STOPBAND_ATTENUATION_DB, transitionBandwidth, stereo);
             }
             
+            // the final stage in double precision (see BMDownsampler.h)
+            BMIIRDownsampler2x_setDoublePrecision(&This->downsamplers2x[This->numStages - 1], BM_DOWNSAMPLER_DOUBLE_LAST_STAGE);
+            
             // allocate memory for buffers
             This->bufferL1 = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE*downsampleFactor/2);
             This->bufferL2 = malloc(sizeof(float)*BM_BUFFER_CHUNK_SIZE*downsampleFactor/2);
@@ -437,6 +440,13 @@ extern "C" {
         }
     }
     
+    
+    
+    
+    void BMDownsampler_setDoublePrecisionLastStage(BMDownsampler *This, bool doublePrecision){
+        if(This->downsampleFactor > 1)
+            BMIIRDownsampler2x_setDoublePrecision(&This->downsamplers2x[This->numStages - 1], doublePrecision);
+    }
     
     
     

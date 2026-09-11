@@ -44,6 +44,11 @@ size_t BMIIRDownsampler2x_init (BMIIRDownsampler2x *This,
     BMMultiLevelBiquad_init(&This->odd, This->numBiquadStages, sampleRate, stereo, true, false);
     BMIIRDownsampler2x_setCoefs(This, coefficientArray);
     
+    // double precision is off until requested
+    This->doublePrecision = false;
+    This->evenD = This->oddD = NULL;
+    This->db1L = This->db2L = This->db1R = This->db2R = NULL;
+    
     free(coefficientArray);
     
     // allocate memory for buffers
@@ -114,6 +119,7 @@ double* BMIIRDownsampler2x_genCoefficients(BMIIRDownsampler2x *This, float minSt
 
 
 void BMIIRDownsampler2x_free (BMIIRDownsampler2x *This){
+    BMIIRDownsampler2x_setDoublePrecision(This, false);
     
     BMMultiLevelBiquad_free(&This->even);
     BMMultiLevelBiquad_free(&This->odd);
@@ -180,9 +186,88 @@ void BMIIRDownsampler2x_setCoefs (BMIIRDownsampler2x *This, const double* coef_a
 
 
 
+void BMIIRDownsampler2x_setDoublePrecision (BMIIRDownsampler2x *This, bool doublePrecision){
+    if(doublePrecision && !This->doublePrecision){
+        // the double biquads take the same coefficients as the float ones
+        This->evenD = vDSP_biquadm_CreateSetupD(This->even.coefficients_d, This->even.numLevels, This->even.numChannels);
+        This->oddD  = vDSP_biquadm_CreateSetupD(This->odd.coefficients_d,  This->odd.numLevels,  This->odd.numChannels);
+        This->db1L = malloc(sizeof(double)*BM_DOWNSAMPLER_CHUNK_SIZE);
+        This->db2L = malloc(sizeof(double)*BM_DOWNSAMPLER_CHUNK_SIZE);
+        if(This->stereo){
+            This->db1R = malloc(sizeof(double)*BM_DOWNSAMPLER_CHUNK_SIZE);
+            This->db2R = malloc(sizeof(double)*BM_DOWNSAMPLER_CHUNK_SIZE);
+        }
+    }
+    if(!doublePrecision && This->doublePrecision){
+        vDSP_biquadm_DestroySetupD(This->evenD);
+        vDSP_biquadm_DestroySetupD(This->oddD);
+        This->evenD = This->oddD = NULL;
+        free(This->db1L); free(This->db2L); free(This->db1R); free(This->db2R);
+        This->db1L = This->db2L = This->db1R = This->db2R = NULL;
+    }
+    This->doublePrecision = doublePrecision;
+}
+
+
+
+/*
+ * Double-precision versions of the process functions below. Same structure:
+ * de-interleave, filter the odd-indexed samples through the even-coefficient
+ * cascade and the even-indexed samples through the odd-coefficient cascade,
+ * average. Conversion to double happens in the de-interleave (vDSP_vspdp
+ * with stride 2) and back to float in the final store.
+ */
+static void BMIIRDownsampler2x_processBufferMonoD (BMIIRDownsampler2x *This, const float* input, float* output, size_t numSamplesIn){
+    double* even = This->db1L;
+    double* odd = This->db2L;
+    while(numSamplesIn > 0){
+        size_t samplesProcessing = BM_MIN(BM_DOWNSAMPLER_CHUNK_SIZE*2, numSamplesIn);
+        size_t half = samplesProcessing / 2;
+        vDSP_vspdp(input, 2, even, 1, half);
+        vDSP_vspdp(input + 1, 2, odd, 1, half);
+        const double *oddIn [1] = {odd}; double *oddOut [1] = {odd};
+        vDSP_biquadmD(This->evenD, oddIn, 1, oddOut, 1, half);
+        const double *evenIn [1] = {even}; double *evenOut [1] = {even};
+        vDSP_biquadmD(This->oddD, evenIn, 1, evenOut, 1, half);
+        double halfGain = 0.5;
+        vDSP_vasmD(even, 1, odd, 1, &halfGain, even, 1, half);
+        vDSP_vdpsp(even, 1, output, 1, half);
+        numSamplesIn -= samplesProcessing;
+        input += samplesProcessing;
+        output += half;
+    }
+}
+
+static void BMIIRDownsampler2x_processBufferStereoD (BMIIRDownsampler2x *This, const float* inputL, const float* inputR, float* outputL, float* outputR, size_t numSamplesIn){
+    double *evenL = This->db1L, *oddL = This->db2L, *evenR = This->db1R, *oddR = This->db2R;
+    while(numSamplesIn > 0){
+        size_t samplesProcessing = BM_MIN(BM_DOWNSAMPLER_CHUNK_SIZE*2, numSamplesIn);
+        size_t half = samplesProcessing / 2;
+        vDSP_vspdp(inputL, 2, evenL, 1, half);
+        vDSP_vspdp(inputL + 1, 2, oddL, 1, half);
+        vDSP_vspdp(inputR, 2, evenR, 1, half);
+        vDSP_vspdp(inputR + 1, 2, oddR, 1, half);
+        const double *oddIn [2] = {oddL, oddR}; double *oddOut [2] = {oddL, oddR};
+        vDSP_biquadmD(This->evenD, oddIn, 1, oddOut, 1, half);
+        const double *evenIn [2] = {evenL, evenR}; double *evenOut [2] = {evenL, evenR};
+        vDSP_biquadmD(This->oddD, evenIn, 1, evenOut, 1, half);
+        double halfGain = 0.5;
+        vDSP_vasmD(evenL, 1, oddL, 1, &halfGain, evenL, 1, half);
+        vDSP_vasmD(evenR, 1, oddR, 1, &halfGain, evenR, 1, half);
+        vDSP_vdpsp(evenL, 1, outputL, 1, half);
+        vDSP_vdpsp(evenR, 1, outputR, 1, half);
+        numSamplesIn -= samplesProcessing;
+        inputL += samplesProcessing; inputR += samplesProcessing;
+        outputL += half; outputR += half;
+    }
+}
+
+
+
 void BMIIRDownsampler2x_processBufferMono (BMIIRDownsampler2x *This, const float* input, float* output, size_t numSamplesIn){
     assert(!This->stereo);
     assert (output != input);
+    if(This->doublePrecision){ BMIIRDownsampler2x_processBufferMonoD(This, input, output, numSamplesIn); return; }
     
     float* even = This->b1L;
     float* odd = This->b2L;
@@ -217,6 +302,7 @@ void BMIIRDownsampler2x_processBufferStereo (BMIIRDownsampler2x *This, const flo
     assert(This->stereo);
     assert (outputL != inputL);
     assert (outputR != inputR);
+    if(This->doublePrecision){ BMIIRDownsampler2x_processBufferStereoD(This, inputL, inputR, outputL, outputR, numSamplesIn); return; }
     
     float* evenL = This->b1L;
     float* oddL = This->b2L;
