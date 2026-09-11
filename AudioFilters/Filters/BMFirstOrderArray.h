@@ -35,12 +35,18 @@ extern "C" {
 #endif
 
 
+// Maximum number of simd_float4 groups (4 channels each) the filter array can
+// process. Raised from 4 to 24 to allow BMReverb to run up to 24 delay units
+// (96 delays). NOTE: this constant participates in struct layout — any change
+// requires a clean rebuild of every target that includes this header.
+#define BM_FOA_MAX_GROUPS 24
+
 typedef struct BMFirstOrderArray4x4 {
-	simd_float4 x1 [4];
-	simd_float4 y1 [4];
-	simd_float4 a1neg [4];
-	simd_float4 b0 [4];
-	simd_float4 b1 [4];
+	simd_float4 x1 [BM_FOA_MAX_GROUPS];
+	simd_float4 y1 [BM_FOA_MAX_GROUPS];
+	simd_float4 a1neg [BM_FOA_MAX_GROUPS];
+	simd_float4 b0 [BM_FOA_MAX_GROUPS];
+	simd_float4 b1 [BM_FOA_MAX_GROUPS];
 	float sampleRate;
 } BMFirstOrderArray4x4;
 
@@ -98,6 +104,7 @@ void BMFirstOrderArray4x4_setLowDecayFDN(BMFirstOrderArray4x4 *This, size_t* del
  * (works in place)
  */
 static __inline__ __attribute__((always_inline)) void BMFirstOrderArray4x4_processSample(BMFirstOrderArray4x4 *This, simd_float4 *input, simd_float4 *output, size_t numChannelsOver4){
+	assert(numChannelsOver4 <= BM_FOA_MAX_GROUPS);
 	
 	for(size_t i=0; i<numChannelsOver4; i++){
 		// biquad filter difference equation
@@ -106,11 +113,11 @@ static __inline__ __attribute__((always_inline)) void BMFirstOrderArray4x4_proce
 				  + This->a1neg[i] * This->y1[i];
 	}
 	
-	// copy x0 to x1
-	memcpy(This->x1, input, 4*sizeof(simd_float4));
-	
-	// copy y0 to y1
-	memcpy(This->y1, output, 4*sizeof(simd_float4));
+	// copy x0 to x1 and y0 to y1. The copy length must cover every group
+	// that was processed; a fixed 4 would leave the filter state stale for
+	// groups 5 and up when running more than 16 channels.
+	memcpy(This->x1, input, numChannelsOver4*sizeof(simd_float4));
+	memcpy(This->y1, output, numChannelsOver4*sizeof(simd_float4));
 }
 
 

@@ -538,6 +538,8 @@ extern "C" {
     
     
     void BMReverbSetNumDelayUnits(struct BMReverb *This, size_t delayUnits){
+        // the per-unit arrays in the struct are sized for BMREVERB_NUMDELAYUNITS
+        assert(delayUnits >= 1 && delayUnits <= BMREVERB_NUMDELAYUNITS);
         This->newNumDelayUnits = delayUnits;
         This->settingsQueuedForUpdate = true;
     }
@@ -547,6 +549,7 @@ extern "C" {
     
     
     void BMReverbUpdateNumDelayUnits(struct BMReverb *This){
+        assert(This->newNumDelayUnits >= 1 && This->newNumDelayUnits <= BMREVERB_NUMDELAYUNITS);
         
         // before beginning, calculate some frequently reused values
         This->delayUnits = This->newNumDelayUnits;

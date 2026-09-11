@@ -7,6 +7,7 @@
 //
 
 #include "BMFirstOrderArray.h"
+#include <assert.h>
 
 
 #ifdef __cplusplus
@@ -21,14 +22,15 @@ extern "C" {
     
 	
 	void BMFirstOrderArray4x4_init(BMFirstOrderArray4x4 *This, size_t numChannels, float sampleRate){
+        assert(numChannels <= 4*BM_FOA_MAX_GROUPS);
         This->sampleRate = sampleRate;
         
         // clear delays
-        memset(This->x1,0,sizeof(simd_float4)*4);
-        memset(This->y1,0,sizeof(simd_float4)*4);
+        memset(This->x1,0,sizeof(simd_float4)*BM_FOA_MAX_GROUPS);
+        memset(This->y1,0,sizeof(simd_float4)*BM_FOA_MAX_GROUPS);
         
         // bypass all the filters
-        for(size_t i=0; i<4; i++)
+        for(size_t i=0; i<BM_FOA_MAX_GROUPS; i++)
             BMFirstOrderArray4x4_setBypass(&This->b0[i], &This->b1[i], &This->a1neg[i]);
     }
     

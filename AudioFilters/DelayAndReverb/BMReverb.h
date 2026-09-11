@@ -21,7 +21,7 @@
 
 // default settings
 #define BMREVERB_WETMIX 0.15 // dryMix = sqrt(1 - wetMix^2)
-#define BMREVERB_NUMDELAYUNITS 4 // each unit contains 4 delays
+#define BMREVERB_NUMDELAYUNITS 24 // each unit contains 4 delays. This is also the MAXIMUM the struct can hold; must be <= BM_FOA_MAX_GROUPS in BMFirstOrderArray.h.
 #define BMREVERB_NUMDELAYS 4 * BMREVERB_NUMDELAYUNITS
 #define BMREVERB_PREDELAY 0.007 // (in seconds)
 #define BMREVERB_ROOMSIZE 0.100 // (seconds of sound travel time)
@@ -145,6 +145,9 @@ void BMReverbSetSlowDecayState(struct BMReverb *This, bool slowDecay);
 // A delay unit is a set of four delay lines.  We are using a sparse
 // mixing matrix that works in groups of four.  So, to get an FDN with
 // 20 delays, set delayUnits = 5.
+//
+// delayUnits must be in [1, BMREVERB_NUMDELAYUNITS]: the struct's per-unit
+// arrays are sized at compile time. Larger values are rejected by an assert.
 //
 // Larger numbers of delay units consume more processing power and produce
 // denser, smoother echoes.  However, the smaller networks have a more
