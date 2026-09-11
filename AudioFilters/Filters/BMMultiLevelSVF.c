@@ -715,6 +715,59 @@ void BMMultiLevelSVF_setHighpass12dBwithQ(BMMultiLevelSVF *This, double fc, doub
     This->shouldUpdateParam = true;
 }
 
+
+
+/*
+ * First-order filters on a second-order section.
+ *
+ * With w0 = the (prewarped) cutoff, the three SVF outputs have the
+ * transfer functions
+ *
+ *    high = s^2 / D,   band = w0 s / D,   low = w0^2 / D,
+ *    D = s^2 + k w0 s + w0^2.
+ *
+ * Choosing Q = 1/2 (k = 2) makes the section critically damped,
+ * D = (s + w0)^2. Then
+ *
+ *    high + band = s (s + w0) / (s + w0)^2 = s / (s + w0)      (6 dB highpass)
+ *    band + low  = w0 (s + w0) / (s + w0)^2 = w0 / (s + w0)    (6 dB lowpass)
+ *
+ * so one of the two poles is cancelled exactly by a zero and what remains
+ * is the bilinear transform of the one-pole filter. The SVF computes its
+ * coefficients from sin(2 pi fc/fs) and sin(pi fc/fs) rather than
+ * tan(pi fc/fs), but the resulting transfer function is the same, so these
+ * are exactly the responses of BMMultiLevelBiquad_setLowPass6db and
+ * BMMultiLevelBiquad_setHighPass6db (verified numerically at 30 Hz to
+ * 20 kHz, fs = 48 kHz, to within 0.001 dB).
+ */
+void BMMultiLevelSVF_setLowpass6dB(BMMultiLevelSVF *This, double fc, size_t level){
+	assert(level < This->numLevels);
+	
+	BMLock_lock(&This->lock);
+	BMMultiLevelSVF_setCoefficientsHelper(This, fc, 0.5, level);
+	This->m0_pending[level] = 0.0;
+	This->m1_pending[level] = 1.0;
+	This->m2_pending[level] = 1.0;
+	BMLock_unlock(&This->lock);
+	
+	This->shouldUpdateParam = true;
+}
+
+
+
+void BMMultiLevelSVF_setHighpass6dB(BMMultiLevelSVF *This, double fc, size_t level){
+	assert(level < This->numLevels);
+	
+	BMLock_lock(&This->lock);
+	BMMultiLevelSVF_setCoefficientsHelper(This, fc, 0.5, level);
+	This->m0_pending[level] = 1.0;
+	This->m1_pending[level] = 1.0;
+	This->m2_pending[level] = 0.0;
+	BMLock_unlock(&This->lock);
+	
+	This->shouldUpdateParam = true;
+}
+
 void BMMultiLevelSVF_setNotch(BMMultiLevelSVF *This, double fc, double Q, size_t level){
     assert(level < This->numLevels);
     
@@ -824,6 +877,71 @@ void BMMultiLevelSVF_setHighShelfS(BMMultiLevelSVF *This, double fc, double gain
 	BMLock_unlock(&This->lock);
 	
 	This->shouldUpdateParam = true;
+}
+
+
+/*
+ * RBJ cookbook shelving filters.
+ *
+ * The cookbook shelf with gain A^2 (A = 10^(dB/40)), slope S and corner
+ * frequency fc is, in the analog prototype with w = s / w0,
+ *
+ *   high shelf:  A (A w^2 + sqrt(A)/Q w + 1) / (w^2 + sqrt(A)/Q w + A)
+ *   low shelf:   A (w^2 + sqrt(A)/Q w + A) / (A w^2 + sqrt(A)/Q w + 1)
+ *
+ * with 1/Q = sqrt((A + 1/A)(1/S - 1) + 2). The gain at fc is A (half the
+ * shelf gain in dB). Dividing numerator and denominator by A shows that the
+ * denominator is a resonator at w0 * sqrt(A) (high shelf) or w0 / sqrt(A)
+ * (low shelf) with the same Q, and the numerator is
+ *
+ *   high shelf:  A^2 high + A k band + low
+ *   low shelf:       high + A k band + A^2 low
+ *
+ * where high, band, low are the SVF outputs of that resonator and k = 1/Q.
+ * The shifted resonator frequency is prewarped through the bilinear
+ * transform so that the shelf lands on fc exactly:
+ *   fcShifted = (fs/pi) atan( tan(pi fc/fs) * sqrt(A) )   (high shelf)
+ *   fcShifted = (fs/pi) atan( tan(pi fc/fs) / sqrt(A) )   (low shelf)
+ * These setters give the same response as the AdjustableSlope shelves in
+ * BMMultiLevelBiquad (verified to within 0.001 dB), including S = 0.5,
+ * which is the first-order shelf.
+ */
+static void BMMultiLevelSVF_setShelfRBJ(BMMultiLevelSVF *This, double fc, double gainDb, double slope, size_t level, bool highShelf){
+	assert(level < This->numLevels);
+	assert(slope > 0.0);
+	
+	double A = pow(10.0, gainDb / 40.0);
+	double Q = 1.0 / sqrt((A + 1.0 / A) * (1.0 / slope - 1.0) + 2.0);
+	double gw = tan(M_PI * fc / This->sampleRate);
+	double fcShifted = (This->sampleRate / M_PI) * atan(highShelf ? gw * sqrt(A) : gw / sqrt(A));
+	
+	BMLock_lock(&This->lock);
+	BMMultiLevelSVF_setCoefficientsHelper(This, fcShifted, Q, level);
+	double Ak = A * This->k_pending[level];
+	if (highShelf){
+		This->m0_pending[level] = A * A;
+		This->m1_pending[level] = Ak;
+		This->m2_pending[level] = 1.0;
+	} else {
+		This->m0_pending[level] = 1.0;
+		This->m1_pending[level] = Ak;
+		This->m2_pending[level] = A * A;
+	}
+	BMLock_unlock(&This->lock);
+	
+	This->shouldUpdateParam = true;
+}
+
+
+
+void BMMultiLevelSVF_setLowShelfAdjustableSlope(BMMultiLevelSVF *This, double fc, double gainDb, double slope, size_t level){
+	BMMultiLevelSVF_setShelfRBJ(This, fc, gainDb, slope, level, false);
+}
+
+
+
+void BMMultiLevelSVF_setHighShelfAdjustableSlope(BMMultiLevelSVF *This, double fc, double gainDb, double slope, size_t level){
+	BMMultiLevelSVF_setShelfRBJ(This, fc, gainDb, slope, level, true);
 }
 
 

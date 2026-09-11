@@ -234,6 +234,24 @@ void BMMultiLevelSVF_setHighpass12dB(BMMultiLevelSVF *This, double fc, size_t le
 void BMMultiLevelSVF_setHighpass12dBwithQ(BMMultiLevelSVF *This, double fc, double q, size_t level);
 
 /*!
+ *BMMultiLevelSVF_setLowpass6dB
+ *
+ * @abstract First-order (6 dB/octave) lowpass, -3 dB at fc. Exactly the
+ * bilinear-transformed one-pole filter (same response as
+ * BMMultiLevelBiquad_setLowPass6db), realised on one SVF level.
+ */
+void BMMultiLevelSVF_setLowpass6dB(BMMultiLevelSVF *This, double fc, size_t level);
+
+/*!
+ *BMMultiLevelSVF_setHighpass6dB
+ *
+ * @abstract First-order (6 dB/octave) highpass, -3 dB at fc. Exactly the
+ * bilinear-transformed one-pole filter (same response as
+ * BMMultiLevelBiquad_setHighPass6db), realised on one SVF level.
+ */
+void BMMultiLevelSVF_setHighpass6dB(BMMultiLevelSVF *This, double fc, size_t level);
+
+/*!
  *BMMultiLevelSVF_setAllpass
  */
 void BMMultiLevelSVF_setAllpass(BMMultiLevelSVF *This, double fc, double q, size_t level);
@@ -279,6 +297,32 @@ void BMMultiLevelSVF_setHighShelf(BMMultiLevelSVF *This, double fc, double gainD
  * @param S slope in [0.5,1]
  */
 void BMMultiLevelSVF_setHighShelfS(BMMultiLevelSVF *This, double fc, double gainDb, double S, size_t level);
+
+/*!
+ *BMMultiLevelSVF_setLowShelfAdjustableSlope
+ *
+ * @abstract Low shelf with the Robert Bristow-Johnson cookbook definition of
+ * the slope parameter. Identical response to
+ * BMMultiLevelBiquad_setLowShelfAdjustableSlope with the same arguments.
+ * The gain at fc is half the shelf gain (in dB). slope = 1 is the steepest
+ * monotonic shelf (Allred's second-order shelf); slope = 0.5 is Allred's
+ * first-order shelf. See
+ * https://bmtechjournal.wordpress.com/2019/10/22/how-to-use-rbj-shelving-filters/
+ *
+ * @param fc      corner frequency (midpoint of the transition, in dB)
+ * @param gainDb  shelf gain in decibels
+ * @param slope   RBJ shelf slope, in (0, 1]
+ */
+void BMMultiLevelSVF_setLowShelfAdjustableSlope(BMMultiLevelSVF *This, double fc, double gainDb, double slope, size_t level);
+
+/*!
+ *BMMultiLevelSVF_setHighShelfAdjustableSlope
+ *
+ * @abstract High shelf with the RBJ cookbook slope parameter. Identical
+ * response to BMMultiLevelBiquad_setHighShelfAdjustableSlope with the same
+ * arguments. See BMMultiLevelSVF_setLowShelfAdjustableSlope.
+ */
+void BMMultiLevelSVF_setHighShelfAdjustableSlope(BMMultiLevelSVF *This, double fc, double gainDb, double slope, size_t level);
 
 /*!
  *BMMultiLevelSVF_impulseResponse
