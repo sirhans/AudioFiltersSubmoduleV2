@@ -124,6 +124,15 @@ void BMMultiLevelBiquad_setBell(BMMultiLevelBiquad* This, float fc, float bandwi
 
 
 /*!
+ *BMMultiLevelBiquad_QToBW
+ *
+ * @abstract Convert a bell filter Q to the bandwidth (Hz) used by the Allred
+ * bell formulae in setBell / setBellWithSkirt. Exposed so that other filters
+ * (e.g. BMMultiLevelSVF users) can match the width of these bells.
+ */
+float BMMultiLevelBiquad_QToBW(BMMultiLevelBiquad *This, float Q, float fc);
+
+/*!
  *BMMultiLevelBiquad_setBellQ
  *
  * @abstract sets a bell filter with frequency, Q, and gain
