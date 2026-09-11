@@ -557,8 +557,14 @@ extern "C" {
         // we compute attenuation on half delays because the reverb is stereo
         This->inputAttenuation = 1.0f/sqrtf((float)This->halfNumDelays);
         
-        // free old memory if necessary
-        if (This->leftOutputTemp) BMReverbFree(This);
+        // free old buffers if necessary. Only the buffers re-allocated below
+        // are freed here: BMReverbFree would also free the main filter (which
+        // is not re-initialised on this path) and leave it dangling.
+        free(This->delayLines);
+        free(This->leftOutputTemp);
+        free(This->dryL);
+        free(This->dryR);
+        BMReverbPointersToNull(This);
         
         // allocate memory for buffers
         This->leftOutputTemp = malloc(BM_BUFFER_CHUNK_SIZE*sizeof(float));
