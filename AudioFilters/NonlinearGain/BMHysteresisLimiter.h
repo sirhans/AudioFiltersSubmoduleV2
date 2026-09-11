@@ -38,6 +38,16 @@ typedef struct BMHysteresisLimiter {
 	BMMultiLevelBiquad AAFilter;
     float c, R, oneOverR, sampleRate, sag, s, sR, halfSR;
 	simd_float2 cs;
+	// Double-precision path (the ...D process functions): a vDSP double
+	// biquad built from the same coefficients as AAFilter, and the charge
+	// state in double. The float32 charge recursion is the dominant source
+	// of the rounding-noise floor in BMSaturator2's gain stage (about
+	// -156 dB re signal); in double the stage reaches the float32 output
+	// quantisation floor (about -180 dB). See BMSaturator2.h,
+	// BM_SAT2_DOUBLE_GAINSTAGE.
+	vDSP_biquadm_SetupD AAFilterD;
+	double cd;
+	simd_double2 csd;
 } BMHysteresisLimiter;
 
 
@@ -190,5 +200,31 @@ void BMHysteresisLimiter_processStereoClassA(BMHysteresisLimiter *This,
 											 float *outputPosL,
 											 float *outputPosR,
 											 size_t numSamples);
+
+
+/*!
+ *BMHysteresisLimiter_processMonoRectifiedD
+ *
+ * @abstract Double-precision version of processMonoRectified: same
+ * asymptotic limit, anti-aliasing filter and charge recursion, all in
+ * double. Requires numChannels == 2 at init.
+ */
+void BMHysteresisLimiter_processMonoRectifiedD(BMHysteresisLimiter *This,
+											   const double *inputPos, const double *inputNeg,
+											   double *outputPos, double *outputNeg,
+											   size_t numSamples);
+
+/*!
+ *BMHysteresisLimiter_processStereoRectifiedD
+ *
+ * @abstract Double-precision version of processStereoRectified. Requires
+ * numChannels == 4 at init.
+ */
+void BMHysteresisLimiter_processStereoRectifiedD(BMHysteresisLimiter *This,
+												 const double *inputPosL, const double *inputPosR,
+												 const double *inputNegL, const double *inputNegR,
+												 double *outputPosL, double *outputPosR,
+												 double *outputNegL, double *outputNegR,
+												 size_t numSamples);
 
 #endif /* BMHysteresisLimiter_h */

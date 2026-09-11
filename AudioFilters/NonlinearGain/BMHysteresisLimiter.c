@@ -357,6 +357,10 @@ void BMHysteresisLimiter_setAAFilterFC(BMHysteresisLimiter *This, float fc){
 		// BMMultiLevelBiquad_setLowPass6db(&This->AAFilter, fc, i);
 		BMMultiLevelBiquad_setLowPassQ12db(&This->AAFilter, fc, 0.5f, i);
 	}
+	// keep the double-precision copy of the filter in step (state is reset;
+	// this is only called at configuration time)
+	if(This->AAFilterD) vDSP_biquadm_DestroySetupD(This->AAFilterD);
+	This->AAFilterD = vDSP_biquadm_CreateSetupD(This->AAFilter.coefficients_d, This->AAFilter.numLevels, This->AAFilter.numChannels);
 	// BMMultiLevelBiquad_setLegendreLP(&This->AAFilter, fc, 0, BM_HYSTERESISLIMITER_AA_FILTER_NUMLEVELS);
 }
 
@@ -371,6 +375,7 @@ void BMHysteresisLimiter_init(BMHysteresisLimiter *This,
 	assert(numChannels == 1 || numChannels == 2 || numChannels == 4);
     
     This->sampleRate = sampleRate;
+	This->AAFilterD = NULL;
 	
 	// init the AA filter
     assert(aaFilterFc < sampleRate * 0.5f);
@@ -387,6 +392,8 @@ void BMHysteresisLimiter_init(BMHysteresisLimiter *This,
 	
 	This->c = 0.0f;
 	This->cs = 0.0f;
+	This->cd = 0.0;
+	This->csd = 0.0;
 }
 
 
@@ -395,4 +402,137 @@ void BMHysteresisLimiter_init(BMHysteresisLimiter *This,
 
 void BMHysteresisLimiter_free(BMHysteresisLimiter *This){
 	BMMultiLevelBiquad_free(&This->AAFilter);
+	if(This->AAFilterD) vDSP_biquadm_DestroySetupD(This->AAFilterD);
+	This->AAFilterD = NULL;
+}
+
+
+
+
+/************************************************
+ *          Double-precision processing         *
+ ************************************************/
+
+/* out = in / (1 + |in|/(fs*sag)), for rectified (sign-known) inputs */
+static void BMHysteresisLimiter_asymptoticLimitRectifiedD(const double *inputPos, const double *inputNeg,
+														   double *outputPos, double *outputNeg,
+														   double sampleRate, double sag, size_t numSamples){
+	double s = 1.0 / (sampleRate * sag);
+	for(size_t i=0; i<numSamples; i++){
+		outputPos[i] = inputPos[i] / (1.0 + s * inputPos[i]);
+		outputNeg[i] = inputNeg[i] / (1.0 - s * inputNeg[i]);
+	}
+}
+
+
+
+void BMHysteresisLimiter_processMonoRectifiedD(BMHysteresisLimiter *This,
+											   const double *inputPos, const double *inputNeg,
+											   double *outputPos, double *outputNeg,
+											   size_t numSamples){
+	assert(This->AAFilter.numChannels == 2 && numSamples % 2 == 0);
+	
+	// asymptotic limit, into the output buffers
+	BMHysteresisLimiter_asymptoticLimitRectifiedD(inputPos, inputNeg, outputPos, outputNeg,
+												  This->sampleRate, This->sag, numSamples);
+	
+	// antialiasing filter, in place
+	const double *in2 [2] = {outputPos, outputNeg};
+	double *out2 [2] = {outputPos, outputNeg};
+	vDSP_biquadmD(This->AAFilterD, in2, 1, out2, 1, numSamples);
+	
+	// charge recursion, alternating the pos/neg order every other sample
+	// exactly as in the float version
+	double c = This->cd;
+	const double s = This->s, halfSR = This->halfSR;
+	for(size_t i=0; i<numSamples; i++){
+		double charge = halfSR * (1.0 - c);
+		double oPos = outputPos[i] * (c + charge);
+		c = c - (oPos * s) + charge;
+		charge = halfSR * (1.0 - c);
+		double oNeg = outputNeg[i] * (c + charge);
+		c = c + (oNeg * s) + charge;
+		outputPos[i] = oPos;
+		outputNeg[i] = oNeg;
+		
+		i++;
+		charge = halfSR * (1.0 - c);
+		oNeg = outputNeg[i] * (c + charge);
+		c = c + (oNeg * s) + charge;
+		charge = halfSR * (1.0 - c);
+		oPos = outputPos[i] * (c + charge);
+		c = c - (oPos * s) + charge;
+		outputPos[i] = oPos;
+		outputNeg[i] = oNeg;
+	}
+	This->cd = c;
+	This->c = (float)c;
+	
+	// scale to compensate for gain loss
+	double oneOverR = This->oneOverR;
+	vDSP_vsmulD(outputPos, 1, &oneOverR, outputPos, 1, numSamples);
+	vDSP_vsmulD(outputNeg, 1, &oneOverR, outputNeg, 1, numSamples);
+}
+
+
+
+void BMHysteresisLimiter_processStereoRectifiedD(BMHysteresisLimiter *This,
+												 const double *inputPosL, const double *inputPosR,
+												 const double *inputNegL, const double *inputNegR,
+												 double *outputPosL, double *outputPosR,
+												 double *outputNegL, double *outputNegR,
+												 size_t numSamples){
+	assert(This->AAFilter.numChannels == 4 && numSamples % 2 == 0);
+	
+	BMHysteresisLimiter_asymptoticLimitRectifiedD(inputPosL, inputNegL, outputPosL, outputNegL,
+												  This->sampleRate, This->sag, numSamples);
+	BMHysteresisLimiter_asymptoticLimitRectifiedD(inputPosR, inputNegR, outputPosR, outputNegR,
+												  This->sampleRate, This->sag, numSamples);
+	
+	const double *in4 [4] = {outputPosL, outputNegL, outputPosR, outputNegR};
+	double *out4 [4] = {outputPosL, outputNegL, outputPosR, outputNegR};
+	vDSP_biquadmD(This->AAFilterD, in4, 1, out4, 1, numSamples);
+	
+	// charge recursion, alternating the pos/neg order every other sample
+	// exactly as in the float version
+	simd_double2 cs = This->csd;
+	const double s = This->s, halfSR = This->halfSR;
+	for(size_t i=0; i<numSamples; i++){
+		// positive, then negative
+		simd_double2 charge = halfSR * (1.0 - cs);
+		simd_double2 iPos = simd_make_double2(outputPosL[i], outputPosR[i]);
+		simd_double2 oPos = iPos * (cs + charge);
+		cs = cs - (s * oPos) + charge;
+		charge = halfSR * (1.0 - cs);
+		simd_double2 iNeg = simd_make_double2(outputNegL[i], outputNegR[i]);
+		simd_double2 oNeg = iNeg * (cs + charge);
+		cs = cs + (s * oNeg) + charge;
+		outputPosL[i] = oPos.x;
+		outputPosR[i] = oPos.y;
+		outputNegL[i] = oNeg.x;
+		outputNegR[i] = oNeg.y;
+		
+		// negative, then positive
+		i++;
+		charge = halfSR * (1.0 - cs);
+		iNeg = simd_make_double2(outputNegL[i], outputNegR[i]);
+		oNeg = iNeg * (cs + charge);
+		cs = cs + (s * oNeg) + charge;
+		charge = halfSR * (1.0 - cs);
+		iPos = simd_make_double2(outputPosL[i], outputPosR[i]);
+		oPos = iPos * (cs + charge);
+		cs = cs - (s * oPos) + charge;
+		outputPosL[i] = oPos.x;
+		outputPosR[i] = oPos.y;
+		outputNegL[i] = oNeg.x;
+		outputNegR[i] = oNeg.y;
+	}
+	This->csd = cs;
+	This->cs = simd_make_float2((float)cs.x, (float)cs.y);
+	
+	double oneOverR = This->oneOverR;
+	vDSP_vsmulD(outputPosL, 1, &oneOverR, outputPosL, 1, numSamples);
+	vDSP_vsmulD(outputPosR, 1, &oneOverR, outputPosR, 1, numSamples);
+	vDSP_vsmulD(outputNegL, 1, &oneOverR, outputNegL, 1, numSamples);
+	vDSP_vsmulD(outputNegR, 1, &oneOverR, outputNegR, 1, numSamples);
 }
