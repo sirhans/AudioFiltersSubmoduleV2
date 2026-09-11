@@ -35,7 +35,7 @@ extern "C" {
             This->upsamplers2x = malloc(sizeof(BMIIRUpsampler2x)*This->numStages);
             
             float stage0TransitionBW = BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_FULL_SPECTRUM;
-            if(type == BMRESAMPLER_GUITAR) stage0TransitionBW = BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_FULL_SPECTRUM;
+            if(type == BMRESAMPLER_GUITAR) stage0TransitionBW = BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_GUITAR;
             if(type == BMRESAMPLER_INPUT_96KHZ) stage0TransitionBW = BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_96KHZ_INPUT;
             
             // initialise each stage of upsampling
@@ -56,8 +56,8 @@ extern "C" {
             float antiRingingFilterFc = 24000.0*(1.0 - BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_FULL_SPECTRUM);
             size_t numLevels = BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_FULL_SPECTRUM;
             if(type == BMRESAMPLER_GUITAR){
-                antiRingingFilterFc = 24000.0*(1.0 - BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_FULL_SPECTRUM);
-                numLevels = BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_96KHZ_INPUT;
+                antiRingingFilterFc = 24000.0*(1.0 - BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_GUITAR);
+                numLevels = BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_GUITAR;
             }
             if(type == BMRESAMPLER_INPUT_96KHZ){
                 antiRingingFilterFc = 24000.0*(1.0 - BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_96KHZ_INPUT);

@@ -21,6 +21,8 @@ extern "C" {
 #define BM_DOWNSAMPLER_ANTIRINGING_FILTER_NUMLEVELS_96KHZ_INPUT BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_96KHZ_INPUT
 #define BM_DOWNSAMPLER_ANTIRINGING_FILTER_BW_FULL_SPECTRUM BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_FULL_SPECTRUM
 #define BM_DOWNSAMPLER_ANTIRINGING_FILTER_BW_96KHZ_INPUT BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_96KHZ_INPUT
+#define BM_DOWNSAMPLER_ANTIRINGING_FILTER_NUMLEVELS_GUITAR BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_GUITAR
+#define BM_DOWNSAMPLER_ANTIRINGING_FILTER_BW_GUITAR BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_GUITAR
     
     
     
@@ -39,7 +41,7 @@ extern "C" {
             This->downsamplers2x = malloc(sizeof(BMIIRDownsampler2x)*This->numStages);
             
             float stage0TransitionBW = BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_FULL_SPECTRUM;
-            if(type == BMRESAMPLER_GUITAR) stage0TransitionBW = BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_FULL_SPECTRUM;
+            if(type == BMRESAMPLER_GUITAR) stage0TransitionBW = BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_GUITAR;
             if(type == BMRESAMPLER_INPUT_96KHZ) stage0TransitionBW = BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_96KHZ_INPUT;
             
             // initialise filters for each stage of downsampling
@@ -66,11 +68,27 @@ extern "C" {
             }
             
             // set up the anti-ringing filter
+            //
+            // The sample rate given to this filter is deliberately hard-coded
+            // at 96 kHz and the cutoff constants are written for a 48 kHz
+            // output (24000 = Nyquist at 48 kHz), regardless of the rate the
+            // downsampler actually runs at. A biquad's coefficients depend only
+            // on the ratio fc / sampleRate, so this fixes the cutoff at
+            // (1 - BW) x Nyquist in *normalized* terms. The filter is then run
+            // at 2 x the true output rate (between the last two 2x stages), so
+            // at every output rate the cutoff lands at the same fraction of the
+            // output Nyquist: 19.75 kHz at 48 kHz out, 18.15 kHz at 44.1 kHz,
+            // 39.5 kHz at 96 kHz. That is the intended, rate-relative behaviour
+            // and it is why BMDownsampler_init needs no sample rate argument.
+            //
+            // Consequence: BMMultiLevelBiquad_groupDelay on this filter returns
+            // samples at 2 x the output rate and interprets its frequency
+            // argument against the 96 kHz label; see getLatencyInSamples.
             float antiRingingFilterFc = 24000.0*(1.0 - BM_DOWNSAMPLER_ANTIRINGING_FILTER_BW_FULL_SPECTRUM);
             size_t numLevels = BM_DOWNSAMPLER_ANTIRINGING_FILTER_NUMLEVELS_FULL_SPECTRUM;
             if(type == BMRESAMPLER_GUITAR){
-                antiRingingFilterFc = 24000.0*(1.0 - BM_DOWNSAMPLER_ANTIRINGING_FILTER_NUMLEVELS_96KHZ_INPUT);
-                numLevels = BM_DOWNSAMPLER_ANTIRINGING_FILTER_NUMLEVELS_96KHZ_INPUT;
+                antiRingingFilterFc = 24000.0*(1.0 - BM_DOWNSAMPLER_ANTIRINGING_FILTER_BW_GUITAR);
+                numLevels = BM_DOWNSAMPLER_ANTIRINGING_FILTER_NUMLEVELS_GUITAR;
             }
             if(type == BMRESAMPLER_INPUT_96KHZ){
                 antiRingingFilterFc = 24000.0*(1.0 - BM_DOWNSAMPLER_ANTIRINGING_FILTER_BW_96KHZ_INPUT);

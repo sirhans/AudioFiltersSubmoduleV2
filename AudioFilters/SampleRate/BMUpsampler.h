@@ -20,11 +20,22 @@ extern "C" {
 
 #define BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_FULL_SPECTRUM 0.05
 #define BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_96KHZ_INPUT 0.1
+#define BM_UPSAMPLER_STAGE0_TRANSITION_BANDWIDTH_GUITAR 0.1
 #define BM_UPSAMPLER_STOPBAND_ATTENUATION_DB 110.0
 #define BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_FULL_SPECTRUM 4
 #define BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_96KHZ_INPUT 2
 #define BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_FULL_SPECTRUM 0.177
 #define BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_96KHZ_INPUT 0.45
+// GUITAR: for guitar amp signal paths we are willing to give up some response
+// near Nyquist in exchange for cheaper resampling (so we can oversample
+// further). The second-stage AA (anti-ringing) filter therefore follows the
+// 96 kHz-input setting: cutoff at (1 - 0.45) = 55% of Nyquist (13.2 kHz for a
+// 48 kHz output, 12.1 kHz at 44.1 kHz), 4th order. It is 0.5 dB down at
+// 10 kHz, 34 dB down at Nyquist, and rings for less than half as long as the
+// 8th-order full-spectrum filter. The half-band stages use the 96 kHz-input
+// transition bandwidth.
+#define BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_GUITAR BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_NUMLEVELS_96KHZ_INPUT
+#define BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_GUITAR BM_UPSAMPLER_SECOND_STAGE_AA_FILTER_BW_96KHZ_INPUT
 
 enum resamplerType {BMRESAMPLER_FULL_SPECTRUM, BMRESAMPLER_GUITAR, BMRESAMPLER_INPUT_96KHZ, BMRESAMPLER_FULL_SPECTRUM_NO_STAGE2_FILTER};
 
