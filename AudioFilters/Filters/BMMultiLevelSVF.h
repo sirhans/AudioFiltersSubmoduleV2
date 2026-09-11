@@ -252,6 +252,14 @@ void BMMultiLevelSVF_setLowpass6dB(BMMultiLevelSVF *This, double fc, size_t leve
 void BMMultiLevelSVF_setHighpass6dB(BMMultiLevelSVF *This, double fc, size_t level);
 
 /*!
+ *BMMultiLevelSVF_setBypass
+ *
+ * @abstract Set one level to unity gain (output = input, exactly), so an
+ * unused level in a multi-level cascade passes the signal through unchanged.
+ */
+void BMMultiLevelSVF_setBypass(BMMultiLevelSVF *This, size_t level);
+
+/*!
  *BMMultiLevelSVF_setAllpass
  */
 void BMMultiLevelSVF_setAllpass(BMMultiLevelSVF *This, double fc, double q, size_t level);

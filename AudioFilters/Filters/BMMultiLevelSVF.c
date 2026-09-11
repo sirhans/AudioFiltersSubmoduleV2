@@ -879,6 +879,24 @@ void BMMultiLevelSVF_setHighShelfS(BMMultiLevelSVF *This, double fc, double gain
 	This->shouldUpdateParam = true;
 }
 
+/*
+ * Unity gain: high + k band + low = (s^2 + k w0 s + w0^2) / D = 1, so with
+ * m0 = 1, m1 = k, m2 = 1 the output equals the input for any fc and Q.
+ */
+void BMMultiLevelSVF_setBypass(BMMultiLevelSVF *This, size_t level){
+	assert(level < This->numLevels);
+	
+	BMLock_lock(&This->lock);
+	BMMultiLevelSVF_setCoefficientsHelper(This, 1000.0, M_SQRT1_2, level);
+	This->m0_pending[level] = 1.0;
+	This->m1_pending[level] = This->k_pending[level];
+	This->m2_pending[level] = 1.0;
+	BMLock_unlock(&This->lock);
+	
+	This->shouldUpdateParam = true;
+}
+
+
 
 /*
  * RBJ cookbook shelving filters.
