@@ -689,9 +689,11 @@ void BMMultiLevelSVF_setBandpass(BMMultiLevelSVF *This, double fc, double Q, siz
     assert(level < This->numLevels);
     
 	BMLock_lock(&This->lock);
+	// band = w0 s / D peaks at 1/k = Q at fc, so scale by k for 0 dB at fc.
+	// (Previously 2k, which gave a +6 dB peak.)
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = 0.0;
-	This->m1_pending[level] = 2.0 * This->k_pending[level];
+	This->m1_pending[level] = This->k_pending[level];
 	This->m2_pending[level] = 0.0;
 	BMLock_unlock(&This->lock);
 	
@@ -786,9 +788,12 @@ void BMMultiLevelSVF_setAllpass(BMMultiLevelSVF *This, double fc, double Q, size
     assert(level < This->numLevels);
     
 	BMLock_lock(&This->lock);
+	// high - k band + low = (s^2 - k w0 s + w0^2) / D: unit magnitude, phase
+	// -180 degrees at fc. (Previously +k, which is high + k band + low = 1,
+	// i.e. no filter at all.)
 	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
 	This->m0_pending[level] = 1.0;
-	This->m1_pending[level] = This->k_pending[level];
+	This->m1_pending[level] = -This->k_pending[level];
 	This->m2_pending[level] = 1.0;
 	BMLock_unlock(&This->lock);
     
