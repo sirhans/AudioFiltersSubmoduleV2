@@ -164,7 +164,7 @@ extern "C" {
                 inputDryL += numSamplesThisChunk;
                 inputWetL += numSamplesThisChunk;
                 inputDryR += numSamplesThisChunk;
-                inputWetL += numSamplesThisChunk;
+                inputWetR += numSamplesThisChunk;
                 outputL += numSamplesThisChunk;
                 outputR += numSamplesThisChunk;
                 numSamples -= numSamplesThisChunk;
@@ -183,7 +183,6 @@ extern "C" {
     
     void BMWetDryMixer_setMix(BMWetDryMixer *This, float mix){
         assert(0.0f <= mix && mix <= 1.0f);
-        printf("setMix %f",mix);
         // if this is a legitimate gain change, set the new target and switch to
         // transition state
         if (mix != This->mixTarget){
