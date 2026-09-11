@@ -747,12 +747,17 @@ void BMMultiLevelSVF_setAllpass(BMMultiLevelSVF *This, double fc, double Q, size
 void BMMultiLevelSVF_setBell(BMMultiLevelSVF *This, double fc, double gainDb, double Q, size_t level){
     assert(level < This->numLevels);
 	
-	double A = BM_DB_TO_GAIN(gainDb);
+	// Symmetric bell, as in Simper's paper (and the RBJ cookbook): the damping
+	// is scaled by the gain, k = 1/(Q*A) with A = sqrt(linear gain), and the
+	// bandpass is mixed in with A^2*k. A cut is then the exact inverse of a
+	// boost with the same Q. (Previously k was 1/Q regardless of gain, which
+	// made cuts and boosts of the same Q have different widths.)
+	double A = sqrt(BM_DB_TO_GAIN(gainDb));
 	
 	BMLock_lock(&This->lock);
-	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
+	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q * A, level);
 	This->m0_pending[level] = 1.0;
-	This->m1_pending[level] = A * This->k_pending[level];
+	This->m1_pending[level] = A * A * This->k_pending[level];
 	This->m2_pending[level] = 1.0;
 	BMLock_unlock(&This->lock);
     
@@ -763,13 +768,17 @@ void BMMultiLevelSVF_setBell(BMMultiLevelSVF *This, double fc, double gainDb, do
 void BMMultiLevelSVF_setBellWithSkirt(BMMultiLevelSVF *This, double fc, double bellGainDb, double skirtGainDb, double Q, size_t level){
 	assert(level < This->numLevels);
 	
-	double A = BM_DB_TO_GAIN(bellGainDb);
+	// The bell is defined relative to the skirt: a symmetric bell of gain
+	// (bell - skirt) dB (see setBell), then the whole response is scaled by
+	// the skirt gain. At fc the gain is the bell gain; far away it is the
+	// skirt gain.
 	double B = BM_DB_TO_GAIN(skirtGainDb);
+	double A = sqrt(BM_DB_TO_GAIN((bellGainDb - skirtGainDb)));
 	
 	BMLock_lock(&This->lock);
-	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q, level);
+	BMMultiLevelSVF_setCoefficientsHelper(This, fc, Q * A, level);
 	This->m0_pending[level] = B;
-	This->m1_pending[level] = A * This->k_pending[level];
+	This->m1_pending[level] = B * A * A * This->k_pending[level];
 	This->m2_pending[level] = B;
 	BMLock_unlock(&This->lock);
 	

@@ -13,7 +13,7 @@
 #ifndef Constants_h
 #define Constants_h
 
-#define BM_DB_TO_GAIN(db) pow(10.0,db/20.0)
+#define BM_DB_TO_GAIN(db) pow(10.0,(db)/20.0)
 #define BM_GAIN_TO_DB(gain) log10f(gain)*20.0
 #define BM_BUFFER_CHUNK_SIZE 512
 
