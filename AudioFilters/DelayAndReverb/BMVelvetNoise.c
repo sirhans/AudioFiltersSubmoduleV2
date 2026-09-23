@@ -13,7 +13,34 @@ extern "C" {
 #endif
 
 #include "BMVelvetNoise.h"
+#include "BMVelvetNoiseInternal.h"
+#include <stdatomic.h>
 #include <stdlib.h>
+
+// One counter for all automatic velvet-noise streams. Relaxed atomic access
+// gives concurrent initializers distinct seeds without sharing generator state.
+// Seeds repeat only after 2^32 allocations; this is not an entropy source.
+static _Atomic(uint32_t) BMVelvetNoise_nextSeed = UINT32_C(20260912);
+
+void BMVelvetNoise_initRandomizer(BMRandom *rng){
+    uint32_t seed = atomic_fetch_add_explicit(&BMVelvetNoise_nextSeed, 1, memory_order_relaxed);
+    BMRandom_init(rng, seed);
+}
+
+void BMVelvetNoise_setTapIndices(float startTimeMS, float endTimeMS,
+                                size_t *indicesOut, float sampleRate, size_t numTaps){
+    BMRandom rng;
+    BMVelvetNoise_initRandomizer(&rng);
+    BMVelvetNoise_setTapIndicesInternal(&rng, startTimeMS, endTimeMS,
+                                       indicesOut, sampleRate, numTaps);
+}
+
+void BMVelvetNoise_setTapSigns(float *tapSigns, size_t numTaps){
+    BMRandom rng;
+    BMVelvetNoise_initRandomizer(&rng);
+    BMVelvetNoise_setTapSignsInternal(&rng, tapSigns, numTaps);
+}
+
 	
     /*!
 	 *BMVelvetNoise_setTapIndices
@@ -28,24 +55,27 @@ extern "C" {
      * @param sampleRate    sample rate of the audio system
      * @param numTaps       length of indicesOut
      */
-    void BMVelvetNoise_setTapIndices(float startTimeMS,
+    void BMVelvetNoise_setTapIndicesInternal(BMRandom *rng,
+                                     float startTimeMS,
                                      float endTimeMS,
                                      size_t* indicesOut,
                                      float sampleRate,
                                      size_t numTaps){
         
-        // compute the spacing for evenly spaced between startTime and endTime
-        float incrementMS = (endTimeMS - startTimeMS) / (float)numTaps;
-		float incrementSamples = sampleRate * incrementMS / 1000.0f;
-		float startTimeSamples = sampleRate * startTimeMS / 1000.0f;
+        // compute the spacing for evenly spaced between startTime and endTime.
+        // In double precision: in single, a jitter within a few millionths of
+        // the top of its cell rounded up into the next cell's first sample,
+        // which matters once the cells are only a few samples wide.
+        double incrementSamples = (double)sampleRate * ((double)endTimeMS - (double)startTimeMS) / 1000.0 / (double)numTaps;
+        double startTimeSamples = (double)sampleRate * (double)startTimeMS / 1000.0;
         
         for(size_t i=0; i< numTaps; i++){
-			// generate an evenly spaced tap time
-			float tapTime = (float)i * incrementSamples + startTimeSamples;
-			
-            // add a random float to each delay time to get uneven spacing
-			float randomJitter = incrementSamples * (float)arc4random()/(float)UINT32_MAX;
-            tapTime += randomJitter;
+            // generate an evenly spaced tap time
+            double tapTime = (double)i * incrementSamples + startTimeSamples;
+            
+            // add a random jitter in [0, one cell) to get uneven spacing: every
+            // point of the cell is equally likely, and so is every sample of it
+            tapTime += incrementSamples * (double)BMRandom_float01(rng);
             
             // convert to unsigned long (size_t)
             indicesOut[i] = (size_t)tapTime;
@@ -71,10 +101,9 @@ extern "C" {
      * randomly shuffle the order of elements in A
      */
     void BMVelvetNoise_randomShuffle(float* A, size_t length){
-        for(size_t i=0; i<length; i++){
-            // swap the ith element in A with a randomly selected element
-            BMVelvetNoise_swapAt(A, i, arc4random_uniform((uint32_t)length));
-        }
+        BMRandom rng;
+        BMVelvetNoise_initRandomizer(&rng);
+        BMRandom_shuffleFloats(&rng, A, length);
     }
     
     
@@ -87,7 +116,8 @@ extern "C" {
      * @param tapSigns   input array
      * @param numTaps    length of tapSigns
      */
-    void BMVelvetNoise_setTapSigns(float* tapSigns,
+    void BMVelvetNoise_setTapSignsInternal(BMRandom *rng,
+                                   float* tapSigns,
                                    size_t numTaps){
         // set half the signs negative and the other half positive
         size_t i=0;
@@ -97,7 +127,7 @@ extern "C" {
             tapSigns[i] = -1.0f;
         
         // shuffle the order of the signs randomly
-        BMVelvetNoise_randomShuffle(tapSigns,numTaps);
+        BMRandom_shuffleFloats(rng, tapSigns, numTaps);
     }
     
 
