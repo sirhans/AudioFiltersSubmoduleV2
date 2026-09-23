@@ -28,7 +28,7 @@ extern "C" {
 
 #include "BMMultiLevelBiquad.h"
 #include "BMMultiLevelSVF.h"
-#include "Constants.h"
+#include "../Constants.h"
 
 
 
@@ -39,12 +39,24 @@ extern "C" {
  * produce a signal-dependent noise floor from their near-DC poles. The
  * responses are identical. The biquads that remain are only used to plot the
  * transfer functions.
+ *
+ * Each 2-way split is one SVF section producing both the lowpass and the
+ * highpass output from the same state; the 3-way and 4-way crossovers are
+ * chains of 2-way splits. This halves the filter work compared with separate
+ * lowpass and highpass filters and gives bit-for-bit the same output.
  */
 typedef struct BMCrossover {
-	BMMultiLevelSVF lp;
-	BMMultiLevelSVF hp;
+	// One state-variable filter section produces both the lowpass and the
+	// highpass output of the first stage from the same state (see
+	// BMMultiLevelSVF_processBufferMonoSplit). For the 4th order crossover,
+	// lp2 and hp2 are the second Butterworth section of each band.
+	BMMultiLevelSVF split;
+	BMMultiLevelSVF lp2;
+	BMMultiLevelSVF hp2;
+	
 	// filters for graph plotting
 	BMMultiLevelBiquad plotFilters [2];
+	
 	bool stereo;
 	bool fourthOrder;
 } BMCrossover;
@@ -52,11 +64,11 @@ typedef struct BMCrossover {
 
 
 typedef struct BMCrossover3way {
-	// filters for audio processing
-	BMMultiLevelSVF low;
-	BMMultiLevelSVF midAndHigh;
-	BMMultiLevelSVF mid;
-	BMMultiLevelSVF high;
+	// filters for audio processing: two 2-way crossovers in a chain, plus a
+	// lowpass at cutoff2 on the low band to match the phase of the other bands
+	BMCrossover xo1;
+	BMCrossover xo2;
+	BMMultiLevelSVF lowPhase;
 	
 	// filters for graph plotting
 	BMMultiLevelBiquad plotFilters [3];
@@ -68,13 +80,13 @@ typedef struct BMCrossover3way {
 
 
 typedef struct BMCrossover4way {
-	// filters for audio processing
-	BMMultiLevelSVF band1;
-	BMMultiLevelSVF bands2to4;
-	BMMultiLevelSVF band2;
-	BMMultiLevelSVF bands3to4;
-	BMMultiLevelSVF band3;
-	BMMultiLevelSVF band4;
+	// filters for audio processing: three 2-way crossovers in a chain, plus
+	// phase-matching lowpasses on bands 1 and 2
+	BMCrossover xo1;
+	BMCrossover xo2;
+	BMCrossover xo3;
+	BMMultiLevelSVF band1Phase;
+	BMMultiLevelSVF band2Phase;
 	
 	// filters for graph plotting
 	BMMultiLevelBiquad plotFilters [4];

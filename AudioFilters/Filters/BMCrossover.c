@@ -34,24 +34,17 @@ extern "C" {
         This->fourthOrder = fourthOrder;
         This->stereo      = stereo;
         
-        
-        // we need one biquad section for 2nd order; two for 4th
-        size_t numLevels;
-        numLevels = fourthOrder ? 2:1;
-        
-        
-        // initialise the filters
-        BMMultiLevelSVF_init(&This->lp,
-                                numLevels,
-                                sampleRate,
-                                stereo);
-        BMMultiLevelSVF_init(&This->hp,
-                                numLevels,
-                                sampleRate,
-                                stereo);
-        
+        // One state-variable filter section produces both the lowpass and the
+        // highpass output of the first stage from the same state. The 4th
+        // order crossover cascades a second Butterworth section on each band.
+        BMMultiLevelSVF_init(&This->split, 1, sampleRate, stereo);
+        if(fourthOrder){
+            BMMultiLevelSVF_init(&This->lp2, 1, sampleRate, stereo);
+            BMMultiLevelSVF_init(&This->hp2, 1, sampleRate, stereo);
+        }
         
         // filters used only for plotting the transfer functions
+        size_t numLevels = fourthOrder ? 2 : 1;
         BMMultiLevelBiquad_init(&This->plotFilters[0], numLevels, sampleRate, false, false, false);
         BMMultiLevelBiquad_init(&This->plotFilters[1], numLevels, sampleRate, false, false, false);
         
@@ -67,10 +60,13 @@ extern "C" {
      * Free memory used by the filters
      */
     void BMCrossover_free(BMCrossover *This){
-        BMMultiLevelSVF_free(&This->lp);
-        BMMultiLevelSVF_free(&This->hp);
-        BMMultiLevelBiquad_free(&This->plotFilters[0]);
-        BMMultiLevelBiquad_free(&This->plotFilters[1]);
+        BMMultiLevelSVF_free(&This->split);
+        if(This->fourthOrder){
+            BMMultiLevelSVF_free(&This->lp2);
+            BMMultiLevelSVF_free(&This->hp2);
+        }
+        for(size_t i=0; i<2; i++)
+            BMMultiLevelBiquad_free(&This->plotFilters[i]);
     }
     
     
@@ -82,36 +78,81 @@ extern "C" {
      * @param cutoff - cutoff frequency in Hz
      */
     void BMCrossover_setCutoff(BMCrossover *This, float cutoff){
-        
         if(This->fourthOrder){
-            // the fourth order crossover uses pairs of
-            // 2nd order butterworth filters
-            //
-            // lowpass 4th order
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->lp,
-                                                          cutoff,
-                                                          0);
-            // highpass fourth order
-            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->hp,
-                                                          cutoff,
-                                                          0);
+            // Linkwitz-Riley 4th order: two cascaded 2nd order Butterworth
+            // sections (Q = 1/sqrt(2)) per band. The first section is shared
+            // by the two bands; only its fc and Q matter for the split.
+            BMMultiLevelSVF_setLowpass12dBwithQ(&This->split, cutoff, M_SQRT1_2, 0);
+            BMMultiLevelSVF_setLowpass12dBwithQ(&This->lp2, cutoff, M_SQRT1_2, 0);
+            BMMultiLevelSVF_setHighpass12dBwithQ(&This->hp2, cutoff, M_SQRT1_2, 0);
+            
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[0], cutoff, 0);
             BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->plotFilters[1], cutoff, 0);
         } else {
-            // the second order crossover uses 2nd order linkwitz-riley
-            // filters. The transfer function of these filters is
-            // equivalent to a cascade of first order butterworth
-            // filters. However, the vDSP library only has machine
-            // optimised code for biquads so don't want to implement
-            // this as a cascade of first-order filters
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->lp,
-                                                  cutoff,
-                                                  0);
-            BMMultiLevelSVF_setLinkwitzRileyHP(&This->hp,
-                                                  cutoff,
-                                                  0);
+            // Linkwitz-Riley 2nd order: one section with Q = 1/2. The
+            // highpass output is inverted at process time (see
+            // BMCrossover_highGain) so that lowpass + highpass is an allpass.
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->split, cutoff, 0);
+            
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[0], cutoff, 0);
             BMMultiLevelBiquad_setLinkwitzRileyHP(&This->plotFilters[1], cutoff, 0);
+        }
+    }
+    
+    
+    
+    
+    /*
+     * Sign of the highpass output. The 2nd order Linkwitz-Riley highpass is
+     * inverted (as BMMultiLevelSVF_setLinkwitzRileyHP does) so that the sum
+     * of the two bands is an allpass; the 4th order needs no inversion.
+     */
+    static inline float BMCrossover_highGain(const BMCrossover *This){
+        return This->fourthOrder ? 1.0f : -1.0f;
+    }
+    
+    
+    
+    
+    // stereo crossover with an explicit sign for the highpass output
+    static void BMCrossover_processStereoGain(BMCrossover *This,
+                                              const float* inL, const float* inR,
+                                              float* lowpassL, float* lowpassR,
+                                              float* highpassL, float* highpassR,
+                                              float highGain,
+                                              size_t numSamples){
+        // one filter, two outputs
+        BMMultiLevelSVF_processBufferStereoSplit(&This->split,
+                                                 inL, inR,
+                                                 lowpassL, lowpassR,
+                                                 highpassL, highpassR,
+                                                 highGain,
+                                                 numSamples);
+        // second Butterworth section on each band
+        if(This->fourthOrder){
+            BMMultiLevelSVF_processBufferStereo(&This->lp2, lowpassL, lowpassR, lowpassL, lowpassR, numSamples);
+            BMMultiLevelSVF_processBufferStereo(&This->hp2, highpassL, highpassR, highpassL, highpassR, numSamples);
+        }
+    }
+    
+    
+    
+    
+    // mono crossover with an explicit sign for the highpass output
+    static void BMCrossover_processMonoGain(BMCrossover *This,
+                                            const float* input,
+                                            float* lowpass,
+                                            float* highpass,
+                                            float highGain,
+                                            size_t numSamples){
+        BMMultiLevelSVF_processBufferMonoSplit(&This->split,
+                                               input,
+                                               lowpass, highpass,
+                                               highGain,
+                                               numSamples);
+        if(This->fourthOrder){
+            BMMultiLevelSVF_processBufferMono(&This->lp2, lowpass, lowpass, numSamples);
+            BMMultiLevelSVF_processBufferMono(&This->hp2, highpass, highpass, numSamples);
         }
     }
     
@@ -135,14 +176,9 @@ extern "C" {
 								   size_t numSamples){
 		assert(This->stereo);
 		
-		BMMultiLevelSVF_processBufferStereo(&This->lp,
-											   inL, inR,
-											   lowpassL, lowpassR,
-											   numSamples);
-		BMMultiLevelSVF_processBufferStereo(&This->hp,
-											   inL, inR,
-											   highpassL, highpassR,
-											   numSamples);
+		BMCrossover_processStereoGain(This, inL, inR,
+									  lowpassL, lowpassR, highpassL, highpassR,
+									  BMCrossover_highGain(This), numSamples);
 	}
     
     
@@ -166,25 +202,13 @@ extern "C" {
                                  size_t numSamples){
         assert(!This->stereo);
         
-        
-        BMMultiLevelSVF_processBufferMono(&This->lp,
-                                             input,
-                                             lowpass,
-                                             numSamples);
-        BMMultiLevelSVF_processBufferMono(&This->hp,
-                                             input,
-                                             highpass,
-                                             numSamples);
-        
-        
-        // if the filter is second order, one of the two outputs must be
-        // inverted so that the sum of the two have unity gain transfer
-        // function when we sum the lowpass and highpass outputs back
-        // together.
-        if(!This->fourthOrder){
-            // negate the highpass outputs
-            vDSP_vneg(highpass, 1, highpass, 1, numSamples);
-        }
+        // Same sign convention as the stereo function: the 2nd order highpass
+        // is inverted so that lowpass + highpass is an allpass. (The original
+        // code negated the 2nd order highpass output a second time here with
+        // vDSP_vneg, which put a notch at the cutoff in the sum of the bands;
+        // fixed 2026-09-12.)
+        BMCrossover_processMonoGain(This, input, lowpass, highpass,
+                                    BMCrossover_highGain(This), numSamples);
     }
     
     void BMCrossover_recombine(const float* lpL, const float* lpR,
@@ -242,28 +266,17 @@ extern "C" {
         This->fourthOrder = fourthOrder;
         This->stereo      = stereo;
         
-        
-        // we need one biquad section for 2nd order; two for 4th
+        // we need one filter section for 2nd order; two for 4th
         size_t levelsPerFilter = fourthOrder ? 2:1;
         
+        // two 2-way crossovers: the first splits the low band off, the
+        // second splits what remains into mid and high
+        BMCrossover_init(&This->xo1, cutoff1, sampleRate, fourthOrder, stereo);
+        BMCrossover_init(&This->xo2, cutoff2, sampleRate, fourthOrder, stereo);
         
-        // initialise the filters
-        BMMultiLevelSVF_init(&This->low,
-                                2*levelsPerFilter,
-                                sampleRate,
-                                stereo);
-        BMMultiLevelSVF_init(&This->midAndHigh,
-                                levelsPerFilter,
-                                sampleRate,
-                                stereo);
-        BMMultiLevelSVF_init(&This->mid,
-                                levelsPerFilter,
-                                sampleRate,
-                                stereo);
-        BMMultiLevelSVF_init(&This->high,
-                                levelsPerFilter,
-                                sampleRate,
-                                stereo);
+        // lowpass at cutoff2 for the low band, so that it gets the same phase
+        // shift as the mid and high bands and the bands sum back correctly
+        BMMultiLevelSVF_init(&This->lowPhase, levelsPerFilter, sampleRate, stereo);
         
         // init filters for plotting
         BMMultiLevelBiquad_init(&This->plotFilters[0],
@@ -279,7 +292,6 @@ extern "C" {
                                 sampleRate,
                                 false, false, false);
         
-        
         BMCrossover3way_setCutoff1(This, cutoff1);
         BMCrossover3way_setCutoff2(This, cutoff2);
     }
@@ -291,10 +303,9 @@ extern "C" {
      */
     void BMCrossover3way_free(BMCrossover3way *This){
         // audio filters
-        BMMultiLevelSVF_free(&This->low);
-        BMMultiLevelSVF_free(&This->midAndHigh);
-        BMMultiLevelSVF_free(&This->mid);
-        BMMultiLevelSVF_free(&This->high);
+        BMCrossover_free(&This->xo1);
+        BMCrossover_free(&This->xo2);
+        BMMultiLevelSVF_free(&This->lowPhase);
         
         // plot filters
         for(size_t i=0; i<3; i++)
@@ -305,21 +316,15 @@ extern "C" {
     
     
     void BMCrossover3way_setCutoff1(BMCrossover3way *This, float fc){
+        // for audio
+        BMCrossover_setCutoff(&This->xo1, fc);
+        
+        // for plotting
         if(This->fourthOrder){
-            // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->low, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->midAndHigh, fc, 0);
-            
-            // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[0], fc, 0);
             BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->plotFilters[1], fc, 0);
         }
         else {
-            // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->low, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyHP(&This->midAndHigh, fc, 0);
-            
-            // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[0], fc, 0);
             BMMultiLevelBiquad_setLinkwitzRileyHP(&This->plotFilters[1], fc, 0);
         }
@@ -329,15 +334,14 @@ extern "C" {
 	
 	
     void BMCrossover3way_setCutoff2(BMCrossover3way *This, float fc){
-        
         // here we set the lowpass filter on both the mid and the low
         // frequencies so that the lowpass filter will have the same phase shift
         // as the mid and high frequencies when we add it all back together
+        BMCrossover_setCutoff(&This->xo2, fc);
+        
         if(This->fourthOrder){
             // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->mid, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->low, fc, 2);
-            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->high, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->lowPhase, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[1], fc, 2);
@@ -345,9 +349,7 @@ extern "C" {
         }
         else {
             // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->mid, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->low, fc, 1);
-            BMMultiLevelSVF_setLinkwitzRileyHP(&This->high, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->lowPhase, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[1], fc, 1);
@@ -364,30 +366,23 @@ extern "C" {
                                        size_t numSamples){
         assert(This->stereo);
         
-        // split the low part of the signal off, processing it through
-        // both crossovers to preserve phase
-        BMMultiLevelSVF_processBufferStereo(&This->low,
-                                               inL, inR,
-                                               lowL, lowR,
-                                               numSamples);
+        float highGain = BMCrossover_highGain(&This->xo1);
         
-        // split the mid and high, buffer to mid
-        BMMultiLevelSVF_processBufferStereo(&This->midAndHigh,
-                                               inL, inR,
-                                               midL, midR,
-                                               numSamples);
+        // split the low band off; the mid buffer receives mid + high
+        BMCrossover_processStereoGain(&This->xo1, inL, inR,
+                                      lowL, lowR, midL, midR,
+                                      highGain, numSamples);
         
-        // split the high from the mid
-        BMMultiLevelSVF_processBufferStereo(&This->high,
-                                               midL, midR,
-                                               highL, highR,
-                                               numSamples);
+        // split mid + high into mid (in place) and high
+        BMCrossover_processStereoGain(&This->xo2, midL, midR,
+                                      midL, midR, highL, highR,
+                                      highGain, numSamples);
         
-        // remove the high from the mid
-        BMMultiLevelSVF_processBufferStereo(&This->mid,
-                                               midL, midR,
-                                               midL, midR,
-                                               numSamples);
+        // lowpass the low band at cutoff2 too, to preserve phase
+        BMMultiLevelSVF_processBufferStereo(&This->lowPhase,
+                                            lowL, lowR,
+                                            lowL, lowR,
+                                            numSamples);
     }
 	
 	
@@ -401,30 +396,16 @@ extern "C" {
                                        size_t numSamples){
         assert(!This->stereo);
         
-        // split the low part of the signal off, processing it through
-        // both crossovers to preserve phase
-        BMMultiLevelSVF_processBufferMono(&This->low,
-                                               inL,
-                                               lowL,
-                                               numSamples);
+        float highGain = BMCrossover_highGain(&This->xo1);
         
-        // split the mid and high, buffer to mid
-        BMMultiLevelSVF_processBufferMono(&This->midAndHigh,
-                                               inL,
-                                               midL,
-                                               numSamples);
+        // split the low band off; the mid buffer receives mid + high
+        BMCrossover_processMonoGain(&This->xo1, inL, lowL, midL, highGain, numSamples);
         
-        // split the high from the mid
-        BMMultiLevelSVF_processBufferMono(&This->high,
-                                               midL,
-                                               highL,
-                                               numSamples);
+        // split mid + high into mid (in place) and high
+        BMCrossover_processMonoGain(&This->xo2, midL, midL, highL, highGain, numSamples);
         
-        // remove the high from the mid
-        BMMultiLevelSVF_processBufferMono(&This->mid,
-                                               midL,
-                                               midL,
-                                               numSamples);
+        // lowpass the low band at cutoff2 too, to preserve phase
+        BMMultiLevelSVF_processBufferMono(&This->lowPhase, lowL, lowL, numSamples);
     }
     
     
@@ -480,36 +461,18 @@ extern "C" {
         This->fourthOrder = fourthOrder;
         This->stereo      = stereo;
         
-        
-        // we need one biquad section for 2nd order; two for 4th
+        // we need one filter section for 2nd order; two for 4th
         size_t levelsPerFilter = fourthOrder ? 2:1;
         
+        // three 2-way crossovers in a chain
+        BMCrossover_init(&This->xo1, cutoff1, sampleRate, fourthOrder, stereo);
+        BMCrossover_init(&This->xo2, cutoff2, sampleRate, fourthOrder, stereo);
+        BMCrossover_init(&This->xo3, cutoff3, sampleRate, fourthOrder, stereo);
         
-        // initialise the filters
-        BMMultiLevelSVF_init(&This->band1,
-                                3*levelsPerFilter,
-                                sampleRate,
-                                stereo);
-        BMMultiLevelSVF_init(&This->bands2to4,
-                                levelsPerFilter,
-                                sampleRate,
-                                stereo);
-        BMMultiLevelSVF_init(&This->band2,
-                                2*levelsPerFilter,
-                                sampleRate,
-                                stereo);
-        BMMultiLevelSVF_init(&This->bands3to4,
-                                levelsPerFilter,
-                                sampleRate,
-                                stereo);
-        BMMultiLevelSVF_init(&This->band3,
-                                levelsPerFilter,
-                                sampleRate,
-                                stereo);
-        BMMultiLevelSVF_init(&This->band4,
-                                levelsPerFilter,
-                                sampleRate,
-                                stereo);
+        // phase-matching lowpasses: band 1 also passes through lowpasses at
+        // cutoff2 and cutoff3, band 2 through a lowpass at cutoff3
+        BMMultiLevelSVF_init(&This->band1Phase, 2*levelsPerFilter, sampleRate, stereo);
+        BMMultiLevelSVF_init(&This->band2Phase, levelsPerFilter, sampleRate, stereo);
         
         // init filters for plotting
         BMMultiLevelBiquad_init(&This->plotFilters[0],
@@ -529,7 +492,6 @@ extern "C" {
                                 sampleRate,
                                 false, false, false);
         
-        
         BMCrossover4way_setCutoff1(This, cutoff1);
         BMCrossover4way_setCutoff2(This, cutoff2);
         BMCrossover4way_setCutoff3(This, cutoff3);
@@ -540,12 +502,11 @@ extern "C" {
      *BMCrossover4way_free
      */
     void BMCrossover4way_free(BMCrossover4way *This){
-        BMMultiLevelSVF_free(&This->band1);
-        BMMultiLevelSVF_free(&This->band2);
-        BMMultiLevelSVF_free(&This->band3);
-        BMMultiLevelSVF_free(&This->band4);
-        BMMultiLevelSVF_free(&This->bands2to4);
-        BMMultiLevelSVF_free(&This->bands3to4);
+        BMCrossover_free(&This->xo1);
+        BMCrossover_free(&This->xo2);
+        BMCrossover_free(&This->xo3);
+        BMMultiLevelSVF_free(&This->band1Phase);
+        BMMultiLevelSVF_free(&This->band2Phase);
         
         for(size_t i=0; i<4; i++)
             BMMultiLevelBiquad_free(&This->plotFilters[i]);
@@ -553,21 +514,15 @@ extern "C" {
     
     
     void BMCrossover4way_setCutoff1(BMCrossover4way *This, float fc){
+        // for audio
+        BMCrossover_setCutoff(&This->xo1, fc);
+        
+        // for plotting
         if(This->fourthOrder){
-            // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band1, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->bands2to4, fc, 0);
-            
-            // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[0], fc, 0);
             BMMultiLevelBiquad_setLinkwitzRileyHP4thOrder(&This->plotFilters[1], fc, 0);
         }
         else {
-            // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band1, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyHP(&This->bands2to4, fc, 0);
-            
-            // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[0], fc, 0);
             BMMultiLevelBiquad_setLinkwitzRileyHP(&This->plotFilters[1], fc, 0);
         }
@@ -576,15 +531,14 @@ extern "C" {
     
     
     void BMCrossover4way_setCutoff2(BMCrossover4way *This, float fc){
-        
         // here we set the lowpass filter on both the mid and the low
         // frequencies so that the lowpass filter will have the same phase shift
         // as the mid and high frequencies when we add it all back together
+        BMCrossover_setCutoff(&This->xo2, fc);
+        
         if(This->fourthOrder){
             // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band2, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band1, fc, 2);
-            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->bands3to4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band1Phase, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[1], fc, 2);
@@ -592,9 +546,7 @@ extern "C" {
         }
         else {
             // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band2, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band1, fc, 1);
-            BMMultiLevelSVF_setLinkwitzRileyHP(&This->bands3to4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band1Phase, fc, 0);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[1], fc, 1);
@@ -605,16 +557,15 @@ extern "C" {
     
     
     void BMCrossover4way_setCutoff3(BMCrossover4way *This, float fc){
-        
         // here we set the lowpass filter on both the mid and the low
         // frequencies so that the lowpass filter will have the same phase shift
         // as the mid and high frequencies when we add it all back together
+        BMCrossover_setCutoff(&This->xo3, fc);
+        
         if(This->fourthOrder){
             // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band3, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band2, fc, 2);
-            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band1, fc, 4);
-            BMMultiLevelSVF_setLinkwitzRileyHP4thOrder(&This->band4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band2Phase, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP4thOrder(&This->band1Phase, fc, 2);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP4thOrder(&This->plotFilters[2], fc, 2);
@@ -622,10 +573,8 @@ extern "C" {
         }
         else {
             // for audio
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band3, fc, 0);
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band2, fc, 1);
-            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band1, fc, 2);
-            BMMultiLevelSVF_setLinkwitzRileyHP(&This->band4, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band2Phase, fc, 0);
+            BMMultiLevelSVF_setLinkwitzRileyLP(&This->band1Phase, fc, 1);
             
             // for plotting
             BMMultiLevelBiquad_setLinkwitzRileyLP(&This->plotFilters[2], fc, 1);
@@ -646,42 +595,24 @@ extern "C" {
                                        size_t numSamples){
         assert(This->stereo);
         
-        // split the low part of the signal off, processing it through
-        // all three crossovers to preserve phase
-        BMMultiLevelSVF_processBufferStereo(&This->band1,
-                                               inL, inR,
-                                               band1L, band1R,
-                                               numSamples);
+        float highGain = BMCrossover_highGain(&This->xo1);
         
-        // split bands 2-4, buffering into 2
-        BMMultiLevelSVF_processBufferStereo(&This->bands2to4,
-                                               inL, inR,
-                                               band2L, band2R,
-                                               numSamples);
+        // split band 1 off; band 2 receives bands 2-4
+        BMCrossover_processStereoGain(&This->xo1, inL, inR,
+                                      band1L, band1R, band2L, band2R,
+                                      highGain, numSamples);
+        // split bands 2-4 into band 2 (in place) and bands 3-4
+        BMCrossover_processStereoGain(&This->xo2, band2L, band2R,
+                                      band2L, band2R, band3L, band3R,
+                                      highGain, numSamples);
+        // split bands 3-4 into band 3 (in place) and band 4
+        BMCrossover_processStereoGain(&This->xo3, band3L, band3R,
+                                      band3L, band3R, band4L, band4R,
+                                      highGain, numSamples);
         
-        // split bands 3-4 off from band 2
-        BMMultiLevelSVF_processBufferStereo(&This->bands3to4,
-                                               band2L, band2R,
-                                               band3L, band3R,
-                                               numSamples);
-        
-        // remove bands 3-4 from band 2
-        BMMultiLevelSVF_processBufferStereo(&This->band2,
-                                               band2L, band2R,
-                                               band2L, band2R,
-                                               numSamples);
-        
-        // split band 4 off from band 3
-        BMMultiLevelSVF_processBufferStereo(&This->band4,
-                                               band3L, band3R,
-                                               band4L, band4R,
-                                               numSamples);
-        
-        // remove band 4 from band 3
-        BMMultiLevelSVF_processBufferStereo(&This->band3,
-                                               band3L, band3R,
-                                               band3L, band3R,
-                                               numSamples);
+        // phase-matching lowpasses on bands 1 and 2
+        BMMultiLevelSVF_processBufferStereo(&This->band2Phase, band2L, band2R, band2L, band2R, numSamples);
+        BMMultiLevelSVF_processBufferStereo(&This->band1Phase, band1L, band1R, band1L, band1R, numSamples);
     }
 	
 	
@@ -697,24 +628,18 @@ extern "C" {
                                        size_t numSamples){
         assert(!This->stereo);
         
-        // split the low part of the signal off, processing it through
-        // all three crossovers to preserve phase
-		BMMultiLevelSVF_processBufferMono(&This->band1, in, band1, numSamples);
+        float highGain = BMCrossover_highGain(&This->xo1);
         
-        // split bands 2-4, buffering into 2
-		BMMultiLevelSVF_processBufferMono(&This->bands2to4, in, band2, numSamples);
+        // split band 1 off; band 2 receives bands 2-4
+        BMCrossover_processMonoGain(&This->xo1, in, band1, band2, highGain, numSamples);
+        // split bands 2-4 into band 2 (in place) and bands 3-4
+        BMCrossover_processMonoGain(&This->xo2, band2, band2, band3, highGain, numSamples);
+        // split bands 3-4 into band 3 (in place) and band 4
+        BMCrossover_processMonoGain(&This->xo3, band3, band3, band4, highGain, numSamples);
         
-        // split bands 3-4 off from band 2
-		BMMultiLevelSVF_processBufferMono(&This->bands3to4, band2, band3, numSamples);
-        
-        // remove bands 3-4 from band 2
-		BMMultiLevelSVF_processBufferMono(&This->band2, band2, band2, numSamples);
-        
-        // split band 4 off from band 3
-		BMMultiLevelSVF_processBufferMono(&This->band4, band3, band4, numSamples);
-        
-        // remove band 4 from band 3
-		BMMultiLevelSVF_processBufferMono(&This->band3, band3, band3, numSamples);
+        // phase-matching lowpasses on bands 1 and 2
+        BMMultiLevelSVF_processBufferMono(&This->band2Phase, band2, band2, numSamples);
+        BMMultiLevelSVF_processBufferMono(&This->band1Phase, band1, band1, numSamples);
     }
 	
 	
