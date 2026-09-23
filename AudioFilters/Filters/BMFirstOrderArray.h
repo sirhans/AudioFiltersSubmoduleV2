@@ -105,19 +105,24 @@ void BMFirstOrderArray4x4_setLowDecayFDN(BMFirstOrderArray4x4 *This, size_t* del
  */
 static __inline__ __attribute__((always_inline)) void BMFirstOrderArray4x4_processSample(BMFirstOrderArray4x4 *This, simd_float4 *input, simd_float4 *output, size_t numChannelsOver4){
 	assert(numChannelsOver4 <= BM_FOA_MAX_GROUPS);
-	
+
 	for(size_t i=0; i<numChannelsOver4; i++){
-		// biquad filter difference equation
-		output[i] = This->b0[i] * input[i]
+		// keep the input: output may be the same array (BMReverb filters its
+		// feedback buffers in place), and x1 has to get the input, not the
+		// output that has just replaced it. (It was copied from `input` after
+		// the loop, which in place made x1 = y1: another filter, whose corner
+		// did not follow the cutoff frequency.)
+		simd_float4 x0 = input[i];
+		
+		// first-order filter difference equation
+		output[i] = This->b0[i] * x0
 				  + This->b1[i] * This->x1[i]
 				  + This->a1neg[i] * This->y1[i];
+		
+		// covers every group we processed (not the first four only)
+		This->x1[i] = x0;
+		This->y1[i] = output[i];
 	}
-	
-	// copy x0 to x1 and y0 to y1. The copy length must cover every group
-	// that was processed; a fixed 4 would leave the filter state stale for
-	// groups 5 and up when running more than 16 channels.
-	memcpy(This->x1, input, numChannelsOver4*sizeof(simd_float4));
-	memcpy(This->y1, output, numChannelsOver4*sizeof(simd_float4));
 }
 
 

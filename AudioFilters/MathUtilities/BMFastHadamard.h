@@ -567,7 +567,8 @@ static inline void BMBlockCirculantMix4xN(simd_float4 *in,
 	simd_float4 *outHalf = out + halfNumBlocks;
 	simd_float4 *outFourth = out + fourthNumBlocks;
 	simd_float4 *outThreeFourths = outHalf + fourthNumBlocks;
-	simd_float4 matrixAttenuation = simd_make_float4(0.5f);
+	// a scalar: simd_make_float4(0.5f) is (0.5, 0, 0, 0), which silenced three delays of every four
+	const float matrixAttenuation = 0.5f;
 	for(size_t i=0; i<halfNumBlocks; i++){
 		// first half = first half plus second half => buffer to temp variable
 		simd_float4 t = matrixAttenuation * (in[i] + inHalf[i]);
@@ -594,6 +595,42 @@ static inline void BMBlockCirculantMix4xN(simd_float4 *in,
 	// rotate the output by one position so that the signal has to pass
 	// numDelays/4 delays before completing the circuit
 	BMRotateRight1((float*)out, (float*)out, 4*numBlocks);
+}
+
+
+
+
+/*!
+ *BMBlockCirculantMixUnits
+ *
+ * @abstract the mix of BMBlockCirculantMix4xN for any number of delay units (groups of four delays), in place. BMBlockCirculantMix4xN counts in simd_float4 blocks, so its quarters have to be whole blocks and the number of units a multiple of 4. Here the quarters are counted in floats: 4 * numUnits floats always divide into four quarters of numUnits floats. For a multiple of 4 units the result is the same.
+ *
+ * The structure: element j of each of the four quarters makes a group of four delays, mixed among themselves by a 4x4 Hadamard matrix (the two butterfly stages below, scaled by 1/2 so the mix is orthogonal). That alone is numUnits separate networks of four delays. The rotation by one position then hands each group's outputs to the next group, around a ring of numUnits groups: a signal passes through numUnits delays before any of it is back where it started.
+ *
+ * @param buffers  numUnits simd_float4 vectors, mixed in place
+ * @param numUnits any number >= 1
+ */
+static inline void BMBlockCirculantMixUnits(simd_float4 *buffers, size_t numUnits){
+	float *q0 = (float*)buffers;
+	float *q1 = q0 + numUnits;
+	float *q2 = q1 + numUnits;
+	float *q3 = q2 + numUnits;
+	
+	for(size_t i=0; i<numUnits; i++){
+		// stage 1: first half +- second half, with the attenuation
+		float s0 = 0.5f * (q0[i] + q2[i]);
+		float s1 = 0.5f * (q1[i] + q3[i]);
+		float s2 = 0.5f * (q0[i] - q2[i]);
+		float s3 = 0.5f * (q1[i] - q3[i]);
+		// stage 2: within each half, first quarter +- second quarter
+		q0[i] = s0 + s1;
+		q1[i] = s0 - s1;
+		q2[i] = s2 + s3;
+		q3[i] = s2 - s3;
+	}
+	
+	// rotate by one position so that each group feeds the next
+	BMRotateRight1(q0, q0, 4*numUnits);
 }
 
 

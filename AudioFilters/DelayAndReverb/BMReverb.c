@@ -78,6 +78,7 @@ extern "C" {
         This->slowDecayRT60 = BMREVERB_SLOWDECAYRT60;
         This->newNumDelayUnits = BMREVERB_NUMDELAYUNITS;
         This->preDelayUpdate = false;
+        This->wetFilterBypassed = false;
         BMReverbSetHighPassFC(This, BMREVERB_HIGHPASS_FC);
 		BMReverbSetMidScoopGain(This,BMREVERB_MID_SCOOP_GAIN);
         BMReverbSetLowPassFC(This, BMREVERB_LOWPASS_FC);
@@ -125,10 +126,11 @@ extern "C" {
 										 numSamplesProcessing);
 
 			// filter the wet signal
-			BMMultiLevelSVF_processBufferStereo(&This->mainFilter,
-												   outputL, outputR,
-												   outputL, outputR,
-												   numSamplesProcessing);
+			if(!This->wetFilterBypassed)
+				BMMultiLevelSVF_processBufferStereo(&This->mainFilter,
+													   outputL, outputR,
+													   outputL, outputR,
+													   numSamplesProcessing);
 
 			// mix wet and dry signals
 			BMWetDryMixer_processBufferRandomPhase(&This->wetDryMixer,
@@ -239,7 +241,7 @@ extern "C" {
     void BMReverbSetLFDecayFC(struct BMReverb *This, float fc){
         assert(fc <= 18000.0 && fc > 100.0f);
         This->lowShelfFC = fc;
-        BMReverbUpdateDecayHighShelfFilters(This);
+        BMReverbUpdateDecayLowShelfFilters(This);
     }
     
     
@@ -675,6 +677,12 @@ extern "C" {
     
     
     
+    void BMReverbSetWetFilterBypass(struct BMReverb *This, bool bypassed){
+        This->wetFilterBypassed = bypassed;
+    }
+    
+    
+    
     void BMReverbPointersToNull(struct BMReverb *This){
         This->delayLines = NULL;
         This->leftOutputTemp = NULL;
@@ -713,6 +721,9 @@ extern "C" {
         
         // high frequency decay
 		BMFirstOrderArray4x4_processSample(&This->HSFArray, This->feedbackBuffers, This->feedbackBuffers, This->fourthNumDelays);
+        
+        // low frequency decay (a multiplier of 1 leaves these at unity gain)
+		BMFirstOrderArray4x4_processSample(&This->LSFArray, This->feedbackBuffers, This->feedbackBuffers, This->fourthNumDelays);
         
         /*
          * write the mixture of input and feedback back into the delays
@@ -753,12 +764,13 @@ extern "C" {
             *outputR += temp.y + temp.w;
         }
         
-        // mix the feedback
-        BMBlockCirculantMix4x4(This->feedbackBuffers, This->feedbackBuffers);
-		
-		// attenuate to keep the feedback unitary
-        for(size_t i=0; i<This->fourthNumDelays; i++)
-            This->feedbackBuffers[i] *= BMREVERB_MATRIX_ATTENUATION;
+        // mix the feedback across all the delay units, however many there are.
+        // (BMBlockCirculantMix4x4, which was used here, mixes 4 units whatever
+        // their number is: with more, the units after the fourth were never
+        // mixed and rang on their own, halved at every pass; with fewer it
+        // read past the units in use.) The mix includes the attenuation that
+        // keeps it unitary.
+        BMBlockCirculantMixUnits(This->feedbackBuffers, This->fourthNumDelays);
     }
     
     

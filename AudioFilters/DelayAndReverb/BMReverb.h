@@ -29,8 +29,8 @@
 #define BMREVERB_DEFAULTSAMPLERATE 44100.0
 #define BMREVERB_HIGHSHELFFC 1400.0 // above this frequency decay is faster
 #define BMREVERB_HFDECAYMULTIPLIER 6.0 // HF decay is this many times faster
-#define BMREVERB_LOWSHELFFC 500.0 // above this frequency decay is faster
-#define BMREVERB_LFDECAYMULTIPLIER 6.0 // LF decay is this many times faster
+#define BMREVERB_LOWSHELFFC 500.0 // below this frequency decay is faster
+#define BMREVERB_LFDECAYMULTIPLIER 1.0 // LF decay is this many times faster (1 = the low shelves do nothing, as when they were not yet in the signal path)
 #define BMREVERB_RT60 1.2 // overall decay time
 #define BMREVERB_HIGHPASS_FC 30.0 // highpass filter on wet out
 #define BMREVERB_MID_SCOOP_FC 1400.0f // mid scoop on wet signal
@@ -58,6 +58,7 @@ typedef struct BMReverb {
 	float inputAttenuation, minDelay_seconds, maxDelay_seconds, sampleRate, wetGain, dryGain, straightStereoMix, crossStereoMix, hfDecayMultiplier, lfDecayMultiplier, highShelfFC, lowShelfFC, rt60, slowDecayRT60, highpassFC, lowpassFC;
 	size_t delayUnits, newNumDelayUnits, numDelays, halfNumDelays, fourthNumDelays, samplesTillNextWrap, totalSamples;
 	bool settingsQueuedForUpdate, preDelayUpdate;
+	bool wetFilterBypassed; // true: the wet-output tone filter (mainFilter) is skipped
 	BMFirstOrderArray4x4 HSFArray;
 	BMFirstOrderArray4x4 LSFArray;
 	// wet-output tone filter (highpass, lowpass, mid scoop). A state-variable
@@ -153,6 +154,10 @@ void BMReverbSetSlowDecayState(struct BMReverb *This, bool slowDecay);
 //
 // delayUnits must be in [1, BMREVERB_NUMDELAYUNITS]: the struct's per-unit
 // arrays are sized at compile time. Larger values are rejected by an assert.
+// The feedback mix is a ring of delayUnits groups of four delays
+// (BMBlockCirculantMixUnits), so any number works. With an even number each
+// group's four delays are all left or all right and the channels meet only
+// from one group to the next; with an odd number every group has two of each.
 //
 // Larger numbers of delay units consume more processing power and produce
 // denser, smoother echoes.  However, the smaller networks have a more
@@ -207,6 +212,14 @@ void BMReverbSetHighPassFC(struct BMReverb *This, float fc);
 // filter on the wet signal.  (that's 12db cutoff slope).  This does
 // not affect the dry signal at all.
 void BMReverbSetLowPassFC(struct BMReverb *This, float fc);
+
+
+/*!
+ *BMReverbSetWetFilterBypass
+ *
+ * @abstract skip the wet-output tone filter (the highpass, the lowpass and the mid scoop) so that the wet signal comes out as the delay network made it. For a caller that runs the reverb fully wet and has its own EQ on the wet signal. Not click-free: set it before the audio starts.
+ */
+void BMReverbSetWetFilterBypass(struct BMReverb *This, bool bypassed);
 
 
 /*!
