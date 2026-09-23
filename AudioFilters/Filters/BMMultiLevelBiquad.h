@@ -63,7 +63,7 @@ void BMMultiLevelBiquad_processBufferMono(BMMultiLevelBiquad* This, const float*
  * @param numLevels the number of biquad filters in the cascade
  * @param sampleRate audio sample rate
  * @param isStereo set true for stereo, false for mono
- * @param monoRealTimeUpdate Require the ability to update filters without re-initialising.
+ * @param monoRealTimeUpdate Retained for source compatibility; all channels now support realtime updates.
  * @param smoothUpdate :    When BMMultilevelBiquad is init with smooth updates on, the update function will call setTargetsDouble to enable smooth update; and when it's off it will call setCoefficientsDouble.
  *
  */
@@ -423,6 +423,41 @@ void BMMultiLevelBiquad_setGain(BMMultiLevelBiquad* This, float gain_db);
 
 void BMMultiLevelBiquad_setGainInstant(BMMultiLevelBiquad *This, float gain_db);
 /*!
+ *BMBiquadSection_tfEval
+ *
+ * @abstract Frequency response of one direct form section
+ * H(z) = (b0 + b1 z^-1 + b2 z^-2) / (1 + a1 z^-1 + a2 z^-2) at the complex
+ * point z (see DSPDoubleComplex_z). The per-section formulae
+ * BMBiquadSection_* are shared with BMMultiLevelSVF, which converts its
+ * levels to biquad coefficients and plots with the same code.
+ */
+DSPDoubleComplex BMBiquadSection_tfEval(double b0, double b1, double b2, double a1, double a2, DSPDoubleComplex z);
+
+/*!
+ *BMBiquadSection_groupDelay
+ *
+ * @abstract Group delay in samples of one section at the radian frequency
+ * w = 2 pi f / fs.
+ */
+double BMBiquadSection_groupDelay(double b0, double b1, double b2, double a1, double a2, double w);
+
+/*!
+ *BMBiquadSection_phaseResponse
+ *
+ * @abstract Unwrapped phase in radians of one section at the radian frequency
+ * w = 2 pi f / fs, in this library's sign convention (a lowpass has positive
+ * phase). Sum over sections and wrap with BMBiquadSection_wrapPhase.
+ */
+double BMBiquadSection_phaseResponse(double b0, double b1, double b2, double a1, double a2, double w);
+
+/*!
+ *BMBiquadSection_wrapPhase
+ *
+ * @abstract Wrap a phase in radians into (-pi, pi].
+ */
+double BMBiquadSection_wrapPhase(double phase);
+
+/*!
  * BMMultiLevelBiquad_tfMagVector
  *
  * @param frequency  an an array specifying frequencies at which we want to evaluate
@@ -450,7 +485,7 @@ double BMMultiLevelBiquad_groupDelay(BMMultiLevelBiquad* This, double freq);
 /*!
  * BMMiltiLevelBiquad_phaseResponse
  *
- * @abstract returns the phase response for all levels of the filter at the specified frequency.
+ * @abstract returns the phase response for all levels of the filter at the specified frequency, in radians, wrapped to (-pi, pi].
  * @param This        pointer to an initialized struct
  * @param freq       the frequency at which we want to compute the phase response
  * @return           the phase shift, in radians, at freq
@@ -462,6 +497,62 @@ void BMMultiLevelBiquad_setActiveOnLevel(BMMultiLevelBiquad* This,bool active,si
 
 //Set coefficient z directly at level
 void BMMultiLevelBiquad_setCoefficientZ(BMMultiLevelBiquad* This,size_t level,double* coeff);
+
+/**************************************
+   Coefficient design (shared with BMMultiLevelSVF)
+ **************************************/
+
+/*!
+ *BMBiquadSectionCoefs
+ *
+ * @abstract The coefficients of one direct form biquad section,
+ * H(z) = (b0 + b1 z^-1 + b2 z^-2) / (1 + a1 z^-1 + a2 z^-2), in the layout of
+ * BMMultiLevelBiquad.coefficients_d (a0 normalised to 1).
+ */
+typedef struct BMBiquadSectionCoefs {
+	double b0, b1, b2, a1, a2;
+} BMBiquadSectionCoefs;
+
+/*
+ * Every BMMultiLevelBiquad_design* function below is the coefficient
+ * formula of the setter of the same name, as a pure function of the
+ * setter's arguments (same order, same types, same meaning) and the sample
+ * rate. The setters call them; so do BMMultiLevelSVF's ...AsBiquad setters,
+ * which convert the result with BMMultiLevelSVF_fromBiquadCoefs, so that
+ * an SVF can replace a biquad with exactly the same settings and the same
+ * transfer function. Only the setters that design one section per call
+ * have a design function; setGain / setGainInstant (a gain stage on the
+ * whole cascade), setActiveOnLevel (skips a section) and setNormalizedBell
+ * (iterative, defined in the .c only) do not.
+ */
+BMBiquadSectionCoefs BMMultiLevelBiquad_designBypass(void);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designBell(float fc, float bandwidth, float gain_db, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designBellQ(float fc, float Q, float gain_db, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designBellWithSkirt(float fc, float Q, float bellGainDb, float skirtGainDb, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designHighShelf(float fc, float gain_db, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designLowShelf(float fc, float gain_db, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designHighShelfAdjustableSlope(float fc, float gain_db, float slope, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designLowShelfAdjustableSlope(float fc, float gain_db, float slope, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designHighShelfFirstOrder(float fc, float gain_db, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designLowShelfFirstOrder(float fc, float gain_db, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designLowPass12db(double fc, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designLowPassQ12db(double fc, double q, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designHighPass12db(double fc, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designHighPass12dbNeg(double fc, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designHighPassQ12db(double fc, double q, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designLinkwitzRileyLP(double fc, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designLinkwitzRileyHP(double fc, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designLowPass6db(double fc, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designHighPass6db(double fc, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designHighPassLowPass(double highPassFc, double lowPassFc, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designAllpass2ndOrder(double c1, double c2);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designAllpass1stOrder(double c);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designCriticallyDampedPhaseCompensator(double lowpassFC, double sampleRate);
+/* one section (numbered from 1) of the multi-section lowpass designs of order filterOrder */
+BMBiquadSectionCoefs BMMultiLevelBiquad_designBWLPSection(double fc, size_t filterOrder, size_t sectionNumber, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designLegendreLPSection(double fc, size_t filterOrder, size_t sectionNumber, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designBesselLPSection(double fc, size_t filterOrder, size_t sectionNumber, double sampleRate);
+BMBiquadSectionCoefs BMMultiLevelBiquad_designCriticallyDampedLPSection(double fc, double sampleRate);
 
 #ifdef __cplusplus
 }
