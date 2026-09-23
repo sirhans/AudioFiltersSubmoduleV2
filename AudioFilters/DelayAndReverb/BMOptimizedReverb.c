@@ -40,8 +40,8 @@
 //  steps, then reads, which makes its delay one sample shorter than its
 //  buffer; the lines here are that one sample shorter instead.)
 //
-//  This file may be used, distributed and modified freely by anyone,
-//  for any purpose, without restrictions.
+//  Released to the public domain. This file may be used, distributed and
+//  modified freely by anyone, for any purpose, without restrictions.
 //
 
 #include "BMOptimizedReverb.h"

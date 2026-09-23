@@ -27,14 +27,13 @@
 //  maxDelayCapacity_seconds. Nothing is allocated afterwards: a change of the
 //  delay times re-draws the delay lengths inside the memory there is.
 //
-//  Threads: process on the audio thread; the setters may be called from
-//  another thread while it runs. The RT60 takes effect at once. New delay
-//  times are picked up by the audio thread at the start of its next buffer,
-//  where it re-draws the delay lengths and clears the delay lines (the tail
-//  is cut off).
+//  Threads: serialise processing and setters on an instance. The RT60 takes
+//  effect at once. New delay times are picked up at the start of the next
+//  process call, which re-draws the delay lengths and clears the delay lines
+//  (the tail is cut off). The pending flag is not thread synchronisation.
 //
-//  This file may be used, distributed and modified freely by anyone,
-//  for any purpose, without restrictions.
+//  Released to the public domain. This file may be used, distributed and
+//  modified freely by anyone, for any purpose, without restrictions.
 //
 
 #ifndef BMOptimizedReverb_h
