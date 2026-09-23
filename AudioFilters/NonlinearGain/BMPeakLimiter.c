@@ -41,6 +41,7 @@ void BMPeakLimiter_initAdvanced(BMPeakLimiter *This,
 	
 	// not limiting yet on startup
 	This->isLimiting = false;
+	This->needsClearBuffers = false;
 	
 	// set the output gain to do nothing
 	float outputGain = 0.0;

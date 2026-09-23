@@ -72,6 +72,21 @@ void BMDynamicSmoothingFilter_setMaxFc(BMDynamicSmoothingFilter *This, float max
 
 
 
+void BMDynamicSmoothingFilter_processBuffer(BMDynamicSmoothingFilter *This,
+											const float* input,
+											float* output,
+											size_t numSamples){
+	for(size_t i=0; i<numSamples; i++){
+		float bandz = This->low1z - This->low2z;
+		float g = This->gMin + This->sensitivity * fabs(bandz);
+		g = MIN(g, This->gMax);
+		This->low2z += g * (bandz);
+		This->low1z += g * (input[i] - This->low1z);
+		output[i] = This->low2z;
+	}
+}
+
+
 void BMDynamicSmoothingFilter_processBufferFastAccent2(BMDynamicSmoothingFilter *This,
 											const float* input,
 											float* output,
