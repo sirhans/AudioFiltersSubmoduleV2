@@ -26,8 +26,8 @@ static void configure(BMMultibandReverb *r){
 static void processing(float sampleRate){
     enum { N = 4097 };
     BMMultibandReverb a, b;
-    BMMultibandReverb_init(&a, sampleRate, 0.25f);
-    BMMultibandReverb_init(&b, sampleRate, 0.25f);
+    CHECK(BMMultibandReverb_init(&a, sampleRate, 0.25f));
+    CHECK(BMMultibandReverb_init(&b, sampleRate, 0.25f));
     float x[N], y[N], l[N], r[N], inPlaceL[N], inPlaceR[N];
     for(size_t i = 0; i < N; i++){
         x[i] = 0.2f * sinf(i * 0.123f);
@@ -73,19 +73,19 @@ static void processing(float sampleRate){
     // Change one band's bounds; no other band's settings or pending flag change.
     BMMultibandReverb_setMinDelay(&a, 0.008f, 2);
     BMMultibandReverb_setMaxDelay(&a, 0.2f, 2);
-    CHECK(a.reverb[2].minDelay_seconds == 0.008f && a.reverb[2].maxDelay_seconds == 0.2f);
-    for(size_t band = 0; band < 4; band++) CHECK(a.reverb[band].delayTimesChanged == (band == 2));
+    CHECK(a.minDelay_seconds[2] == 0.008f && a.maxDelay_seconds[2] == 0.2f);
+    for(size_t band = 0; band < 4; band++) CHECK((a.reverb[band].pendingDelayTimeBits != 0) == (band == 2));
     BMMultibandReverb_processStereo(&a, x, y, l, r, 1);
-    CHECK(!a.reverb[2].delayTimesChanged);
+    CHECK(!a.reverb[2].pendingDelayTimeBits);
     // Repeating the same delay bounds must not clear a sounding tail.
     BMMultibandReverb_setDelayTimes(&a, 0.008f, 0.2f, 2);
-    CHECK(!a.reverb[2].delayTimesChanged);
+    CHECK(!a.reverb[2].pendingDelayTimeBits);
     BMMultibandReverb_free(&a); BMMultibandReverb_free(&b);
 }
 
 static void wetReference(void){
     BMMultibandReverb r;
-    BMMultibandReverb_init(&r, 48000, 0.2f);
+    CHECK(BMMultibandReverb_init(&r, 48000, 0.2f));
     configure(&r);
     float inputL[512] = {0}, inputR[512] = {0}, outputL[512], outputR[512];
     // Let all wet controls settle, keeping every delay line silent.
@@ -138,7 +138,7 @@ static void plotting(float sampleRate){
         // Start each measurement with fresh state using the public lifecycle,
         // without depending on the crossover's internal filter layout.
         BMMultibandReverb r;
-        BMMultibandReverb_init(&r, sampleRate, 0.2f);
+        CHECK(BMMultibandReverb_init(&r, sampleRate, 0.2f));
         if(pass){
             // Close boundaries expose omitted low/high-pass factors in a plot.
             BMMultibandReverb_setCrossoverFrequencies(&r, 1400, 2100, 2800);
@@ -179,7 +179,7 @@ static void plotting(float sampleRate){
 static void invalidControls(void){
 #ifdef NDEBUG
     BMMultibandReverb r;
-    BMMultibandReverb_init(&r, 48000, 0.2f);
+    CHECK(BMMultibandReverb_init(&r, 48000, 0.2f));
     BMMultibandReverb_setWet(&r, NAN, 0);
     BMMultibandReverb_setWet(&r, 1.1f, 1);
     BMMultibandReverb_setWet(&r, 0.5f, 4);
@@ -198,7 +198,7 @@ static void invalidControls(void){
         CHECK(r.reverb[b].rt60 == BMOR_DEFAULT_RT60);
         CHECK(r.reverb[b].minDelay_seconds == BMOR_DEFAULT_MINDELAY);
         CHECK(r.reverb[b].maxDelay_seconds == BMOR_DEFAULT_MAXDELAY);
-        CHECK(!r.reverb[b].delayTimesChanged);
+        CHECK(!r.reverb[b].pendingDelayTimeBits);
     }
     CHECK(r.crossoverFrequencies[0] == 300 && r.crossoverFrequencies[1] == 3000 && r.crossoverFrequencies[2] == 8000);
     BMMultibandReverb_free(&r);

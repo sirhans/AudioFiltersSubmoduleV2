@@ -32,6 +32,9 @@ typedef struct BMMultibandReverb {
     BMWetDryMixer mixer[BMMULTIBANDREVERB_NUM_BANDS];
     float sampleRate, maxDelayCapacity_seconds;
     float crossoverFrequencies[BMMULTIBANDREVERB_NUM_CROSSOVERS];
+    // Requested bounds; BMOptimizedReverb applies them on its next process call.
+    float minDelay_seconds[BMMULTIBANDREVERB_NUM_BANDS];
+    float maxDelay_seconds[BMMULTIBANDREVERB_NUM_BANDS];
     float *buffer;
     float *bandL[BMMULTIBANDREVERB_NUM_BANDS];
     float *bandR[BMMULTIBANDREVERB_NUM_BANDS];
@@ -55,8 +58,10 @@ typedef struct BMMultibandReverb {
  * or stop processing before changing controls from another thread. Processing
  * and setters do not allocate. Init/free are not audio-thread operations.
  * Do not copy an initialised struct; it owns its allocations.
+ * Returns false if reverb or scratch allocation fails; free is safe after failure.
+ * The sample rate must accommodate BMOptimizedReverb's default delay range.
  */
-void BMMultibandReverb_init(BMMultibandReverb *This, float sampleRate,
+bool BMMultibandReverb_init(BMMultibandReverb *This, float sampleRate,
                           float maxDelayCapacity_seconds);
 
 void BMMultibandReverb_free(BMMultibandReverb *This);
@@ -90,11 +95,20 @@ void BMMultibandReverb_setRT60DecayTime(BMMultibandReverb *This, float rt60,
                                      size_t band);
 
 /// minDelay > 0, maxDelay > 2 * minDelay, maxDelay <= capacity given to init.
+/// The minimum must be at least two samples, and the inclusive delay range
+/// must contain at least one position per delay (36 at the default unit count).
 /// A change redraws the delays and clears this band's tail on its next process
 /// call. Use the paired setter to change both bounds together.
 void BMMultibandReverb_setDelayTimes(BMMultibandReverb *This,
                                    float minDelay_seconds, float maxDelay_seconds,
                                    size_t band);
+
+/// Install a measured configuration (including its sign pattern) on one band.
+/// Serialise with all other calls on this instance. Returns false for an invalid
+/// configuration. The next process call installs it and clears that band's tail.
+bool BMMultibandReverb_setConfiguration(BMMultibandReverb *This,
+                                      const BMOptimizedReverbConfiguration *configuration,
+                                      size_t band);
 
 /// Change one bound while retaining the other; the same constraints apply.
 void BMMultibandReverb_setMinDelay(BMMultibandReverb *This,

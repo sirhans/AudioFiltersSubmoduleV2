@@ -19,7 +19,7 @@ static bool BMMultibandReverb_validBand(size_t band){
 }
 
 
-void BMMultibandReverb_init(BMMultibandReverb *This, float sampleRate,
+bool BMMultibandReverb_init(BMMultibandReverb *This, float sampleRate,
                           float maxDelayCapacity_seconds){
     assert(isfinite(sampleRate) && sampleRate > 0.0f);
     assert(isfinite(maxDelayCapacity_seconds) &&
@@ -31,32 +31,42 @@ void BMMultibandReverb_init(BMMultibandReverb *This, float sampleRate,
     This->crossoverFrequencies[0] = 300.0f * scale;
     This->crossoverFrequencies[1] = 3000.0f * scale;
     This->crossoverFrequencies[2] = 8000.0f * scale;
-    BMCrossover4way_init(&This->crossover,
-                        This->crossoverFrequencies[0],
-                        This->crossoverFrequencies[1],
-                        This->crossoverFrequencies[2], sampleRate, true, true);
+
 
     // Eight dry band buffers and one reusable stereo wet buffer. The crossover
     // finishes reading both inputs before either output is written, permitting
     // in-place processing without an additional copy of the input.
     This->buffer = malloc(10 * BM_BUFFER_CHUNK_SIZE * sizeof(float));
-    assert(This->buffer);
+    if(!This->buffer) return false;
     for(size_t band = 0; band < BMMULTIBANDREVERB_NUM_BANDS; band++){
         This->bandL[band] = This->buffer + (2 * band) * BM_BUFFER_CHUNK_SIZE;
         This->bandR[band] = This->buffer + (2 * band + 1) * BM_BUFFER_CHUNK_SIZE;
-        BMOptimizedReverb_init(&This->reverb[band], sampleRate, maxDelayCapacity_seconds);
+        if(!BMOptimizedReverb_init(&This->reverb[band], sampleRate, maxDelayCapacity_seconds)){
+            for(size_t i = 0; i <= band; i++) BMOptimizedReverb_free(&This->reverb[i]);
+            free(This->buffer);
+            This->buffer = NULL;
+            return false;
+        }
+        This->minDelay_seconds[band] = BMOR_DEFAULT_MINDELAY;
+        This->maxDelay_seconds[band] = BMOR_DEFAULT_MAXDELAY;
         BMWetDryMixer_init(&This->mixer[band], sampleRate);
         // Start fully dry immediately, rather than fading down from the mixer's
         // fully wet default. Initialise dryMix as well as the wet target.
         This->mixer[band].wetMix = This->mixer[band].mixTarget = 0.0f;
         This->mixer[band].dryMix = 1.0f;
     }
+    BMCrossover4way_init(&This->crossover,
+                        This->crossoverFrequencies[0],
+                        This->crossoverFrequencies[1],
+                        This->crossoverFrequencies[2], sampleRate, true, true);
     This->wetL = This->buffer + 8 * BM_BUFFER_CHUNK_SIZE;
     This->wetR = This->buffer + 9 * BM_BUFFER_CHUNK_SIZE;
+    return true;
 }
 
 
 void BMMultibandReverb_free(BMMultibandReverb *This){
+    if(!This->buffer) return;
     BMCrossover4way_free(&This->crossover);
     for(size_t band = 0; band < BMMULTIBANDREVERB_NUM_BANDS; band++)
         BMOptimizedReverb_free(&This->reverb[band]);
@@ -129,10 +139,30 @@ void BMMultibandReverb_setDelayTimes(BMMultibandReverb *This,
                  maxDelay_seconds <= This->maxDelayCapacity_seconds;
     assert(valid);
     if(!valid) return;
-    BMOptimizedReverb *reverb = &This->reverb[band];
-    if(minDelay_seconds != reverb->minDelay_seconds ||
-       maxDelay_seconds != reverb->maxDelay_seconds)
-        BMOptimizedReverb_setDelayTimes(reverb, minDelay_seconds, maxDelay_seconds);
+    // Match the underlying reverb's integer-sample constraints before publishing.
+    size_t minimum = (size_t)(minDelay_seconds * This->sampleRate);
+    size_t maximum = (size_t)(maxDelay_seconds * This->sampleRate);
+    valid = minimum >= 2 && maximum >= minimum &&
+            maximum - minimum >= This->reverb[band].numDelays - 1;
+    assert(valid);
+    if(!valid) return;
+    if(minDelay_seconds != This->minDelay_seconds[band] ||
+       maxDelay_seconds != This->maxDelay_seconds[band]){
+        BMOptimizedReverb_setDelayTimes(&This->reverb[band], minDelay_seconds, maxDelay_seconds);
+        This->minDelay_seconds[band] = minDelay_seconds;
+        This->maxDelay_seconds[band] = maxDelay_seconds;
+    }
+}
+
+
+bool BMMultibandReverb_setConfiguration(BMMultibandReverb *This,
+                                      const BMOptimizedReverbConfiguration *configuration,
+                                      size_t band){
+    if(!BMMultibandReverb_validBand(band)) return false;
+    if(!BMOptimizedReverb_setConfiguration(&This->reverb[band], configuration)) return false;
+    This->minDelay_seconds[band] = configuration->minDelay_seconds;
+    This->maxDelay_seconds[band] = configuration->maxDelay_seconds;
+    return true;
 }
 
 
@@ -140,14 +170,14 @@ void BMMultibandReverb_setMinDelay(BMMultibandReverb *This,
                                  float minDelay_seconds, size_t band){
     if(!BMMultibandReverb_validBand(band)) return;
     BMMultibandReverb_setDelayTimes(This, minDelay_seconds,
-                                   This->reverb[band].maxDelay_seconds, band);
+                                   This->maxDelay_seconds[band], band);
 }
 
 
 void BMMultibandReverb_setMaxDelay(BMMultibandReverb *This,
                                  float maxDelay_seconds, size_t band){
     if(!BMMultibandReverb_validBand(band)) return;
-    BMMultibandReverb_setDelayTimes(This, This->reverb[band].minDelay_seconds,
+    BMMultibandReverb_setDelayTimes(This, This->minDelay_seconds[band],
                                    maxDelay_seconds, band);
 }
 
