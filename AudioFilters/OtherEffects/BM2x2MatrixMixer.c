@@ -57,8 +57,8 @@ void BM2x2MatrixMixer_processStereo(BM2x2MatrixMixer *This,
 					This->buffer, 1, samplesProcessing);
 		
 		// inL * [0][1] + inR * [1][1] => outR
-		vDSP_vsmsma(inL + samplesProcessed, 1, &m00,
-					inR + samplesProcessed, 1, &m10,
+		vDSP_vsmsma(inL + samplesProcessed, 1, &m01,
+					inR + samplesProcessed, 1, &m11,
 					outR + samplesProcessed, 1, samplesProcessing);
 		
 		// buffer => outL
