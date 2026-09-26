@@ -24,6 +24,7 @@ extern "C" {
     
     void BMWetDryMixer_init(BMWetDryMixer *This, float sampleRate){
         This->wetMix = This->mixTarget = 1.0f;
+        This->dryMix = 1.0f - This->wetMix;
         This->inTransition = false;
         
         // set the per sample difference to fade from 0 to 1 in *time*
