@@ -179,7 +179,7 @@ size_t BMSimpleDelayStereo_inputCapacity(BMSimpleDelayStereo *This){
 
 size_t BMSimpleDelayStereo_input(BMSimpleDelayStereo *This, float *inL, float *inR, size_t inputLength){
 	// how much space is available to write into the delay?
-	size_t spaceAvailable = BMSimpleDelayStereo_outputCapacity(This);
+	size_t spaceAvailable = BMSimpleDelayStereo_inputCapacity(This);
 	
 	// how much input are we actually going to write?
 	size_t inputSamplesWriting = BM_MIN(spaceAvailable, inputLength);
