@@ -58,6 +58,11 @@
     #define atomicFetchAdd(a,b) atomic_fetch_add(a,b)
 #endif
 
+// Apple's <sys/cdefs.h> defines this; other platforms need it spelled out.
+#ifndef __deprecated_msg
+    #define __deprecated_msg(msg) __attribute__((deprecated(msg)))
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

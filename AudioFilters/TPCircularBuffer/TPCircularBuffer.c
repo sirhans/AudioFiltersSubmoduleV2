@@ -26,7 +26,7 @@
 //
 //  3. This notice may not be removed or altered from any source distribution.
 //
-
+#if defined(__APPLE__) // Mach VM backend; the mmap backend for other platforms follows it
 #include "TPCircularBuffer.h"
 #include <mach/mach.h>
 #include <stdio.h>
@@ -136,6 +136,87 @@ void TPCircularBufferCleanup(TPCircularBuffer *buffer) {
     vm_deallocate(mach_task_self(), (vm_address_t)buffer->buffer, buffer->length * 2);
     memset(buffer, 0, sizeof(TPCircularBuffer));
 }
+
+#else // mmap backend: map one block of shared memory twice, back to back
+
+#include "TPCircularBuffer.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#if defined(__ANDROID__) && __ANDROID_API__ >= 26
+#include <android/sharedmem.h> // link with libandroid
+#elif defined(__linux__)
+#include <sys/syscall.h>
+#endif
+
+static size_t roundToPageSize(size_t length) {
+    long pageSize = sysconf(_SC_PAGESIZE);
+    if ( pageSize <= 0 ) pageSize = 4096;
+    return (length + (size_t)pageSize - 1) & ~((size_t)pageSize - 1);
+}
+
+// Returns a file descriptor for length bytes of shared memory, or -1 on failure.
+static int createSharedMemory(size_t length) {
+#if defined(__ANDROID__) && __ANDROID_API__ >= 26
+    return ASharedMemory_create("TPCircularBuffer", length);
+#elif defined(__linux__) && defined(SYS_memfd_create)
+    int fd = (int)syscall(SYS_memfd_create, "TPCircularBuffer", 0);
+    if ( fd >= 0 && ftruncate(fd, (off_t)length) != 0 ) {
+        close(fd);
+        return -1;
+    }
+    return fd;
+#else
+    (void)length;
+    return -1;
+#endif
+}
+
+bool _TPCircularBufferInit(TPCircularBuffer *buffer, uint32_t length, size_t structSize) {
+
+    assert(length > 0);
+
+    if ( structSize != sizeof(TPCircularBuffer) ) {
+        fprintf(stderr, "TPCircularBuffer: Header version mismatch. Check for old versions of TPCircularBuffer in your project\n");
+        abort();
+    }
+
+    buffer->length = (uint32_t)roundToPageSize(length);    // We need whole page sizes
+
+    int fd = createSharedMemory(buffer->length);
+    if ( fd < 0 ) {
+        printf("TPCircularBuffer: couldn't create shared memory\n");
+        return false;
+    }
+
+    // Reserve twice the length of contiguous address space, then map the same
+    // memory into both halves so the buffer is mirrored directly after itself
+    char *address = mmap(NULL, (size_t)buffer->length * 2, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    bool mapped = address != MAP_FAILED
+        && mmap(address, buffer->length, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0) != MAP_FAILED
+        && mmap(address + buffer->length, buffer->length, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0) != MAP_FAILED;
+    close(fd); // the mappings keep the memory alive
+    if ( !mapped ) {
+        if ( address != MAP_FAILED ) munmap(address, (size_t)buffer->length * 2);
+        printf("TPCircularBuffer: couldn't map buffer memory\n");
+        return false;
+    }
+
+    buffer->buffer = address;
+    buffer->fillCount = 0;
+    buffer->head = buffer->tail = 0;
+    buffer->atomic = true;
+
+    return true;
+}
+
+void TPCircularBufferCleanup(TPCircularBuffer *buffer) {
+    if ( buffer->buffer ) munmap(buffer->buffer, (size_t)buffer->length * 2);
+    memset(buffer, 0, sizeof(TPCircularBuffer));
+}
+
+#endif
 
 void TPCircularBufferClear(TPCircularBuffer *buffer) {
     uint32_t fillCount;
