@@ -1490,12 +1490,13 @@ void bDSP_ctoz(
                 Z[n] = C[n];
     */
     
+    // IC counts floats, so complex elements are IC/2 apart
     long ic = 0;
     long iz = 0;
     for (size_t n = 0; n < N; ++n){
         Z->realp[iz] = C[ic].real;
         Z->imagp[iz] = C[ic].imag;
-        ic += IC;
+        ic += IC / 2;
         iz += IZ;
     }
 }
@@ -1517,12 +1518,13 @@ void bDSP_ztoc(
             for (n = 0; n < N; ++n)
                 C[n] = Z[n];
     */
+    // IC counts floats, so complex elements are IC/2 apart
     long ic = 0;
     long iz = 0;
     for (size_t n = 0; n < N; ++n){
         C[ic].real = Z->realp[iz];
         C[ic].imag = Z->imagp[iz];
-        ic += IC;
+        ic += IC / 2;
         iz += IZ;
     }
 }
