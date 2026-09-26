@@ -123,6 +123,7 @@
     #define vDSP_vmax bDSP_vmax
     #define vDSP_vsbsm bDSP_vsbsm
     #define vDSP_vasm bDSP_vasm
+    #define vDSP_vasmD bDSP_vasmD
     #define vDSP_vswsum bDSP_vswsum
     #define vDSP_vmsa bDSP_vmsa
     #define vDSP_vdiv bDSP_vdiv
@@ -141,6 +142,7 @@
     #define vDSP_vsmsaD bDSP_vsmsaD
     #define vDSP_vsaddD bDSP_vsaddD
     #define vDSP_vdpsp bDSP_vdpsp
+    #define vDSP_vspdp bDSP_vspdp
     #define vDSP_vmin bDSP_vmin
     #define vDSP_vmaxmg bDSP_vmaxmg
     #define vDSP_vminmg bDSP_vminmg

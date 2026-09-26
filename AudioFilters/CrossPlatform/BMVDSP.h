@@ -285,6 +285,17 @@ void bDSP_vasm(
                 long  ID,
                size_t  N);
 
+// D[n*ID] = (A[n*IA] + B[n*IB]) * C[0]
+void bDSP_vasmD(
+                const double *A,
+                long  IA,
+                const double *B,
+                long  IB,
+                const double *C,
+                double       *D,
+                long  ID,
+               size_t  N);
+
 void bDSP_vswsum(
                 const float *A,
                 long  IA,
@@ -417,6 +428,14 @@ void bDSP_vdpsp(
                 const double *A,
                 long   IA,
                 float        *C,
+                long   IC,
+                size_t   N);
+
+// C[n*IC] = A[n*IA], converting float to double
+void bDSP_vspdp(
+                const float *A,
+                long   IA,
+                double       *C,
                 long   IC,
                 size_t   N);
 
@@ -773,10 +792,22 @@ typedef struct vDSP_biquadm_SetupStruct {
     bool * _Nonnull activeLevels;
     size_t numChannels;
     size_t numLevels;
+    // set by vDSP_biquadm_SetTargetsDouble; cleared once the coefficients reach the targets
+    bool interpolating;
+    double interpRate, interpThreshold;
 } vDSP_biquadm_SetupStruct;
 
 
 typedef struct vDSP_biquadm_SetupStruct *vDSP_biquadm_Setup;
+
+
+// The double-precision filter keeps the same data; the separate type mirrors Accelerate's API.
+typedef struct vDSP_biquadm_SetupStructD {
+    vDSP_biquadm_SetupStruct filter;
+} vDSP_biquadm_SetupStructD;
+
+
+typedef struct vDSP_biquadm_SetupStructD *vDSP_biquadm_SetupD;
 
 
 /*  vDSP_biquadm_CreateSetup allocates memory and prepares the coefficients for processing a
@@ -799,11 +830,22 @@ extern vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeff
 extern void vDSP_biquadm_DestroySetup(vDSP_biquadm_Setup _Nonnull __setup);
 
 
+extern vDSP_biquadm_SetupD vDSP_biquadm_CreateSetupD(const double * _Nonnull coeffs,
+                                                     vDSP_Length   numLevels,
+                                                     vDSP_Length   numChannels);
+
+
+extern void vDSP_biquadm_DestroySetupD(vDSP_biquadm_SetupD _Nonnull __setup);
+
+
 /*
     vDSP_biquadm_ResetState (for float) or vDSP_biquadm_ResetStateD (for
     double) sets the delay values of a biquadm setup object to zero.
 */
 extern void vDSP_biquadm_ResetState(vDSP_biquadm_Setup _Nonnull __setup);
+
+
+extern void vDSP_biquadm_ResetStateD(vDSP_biquadm_SetupD _Nonnull __setup);
 
 
 
@@ -824,6 +866,11 @@ extern void vDSP_biquadm_SetCoefficientsDouble(
 /*
     vDSP_biquadm_SetTargetsDouble will
     set the target coefficients within a valid vDSP_biquadm_Setup object.
+ 
+    During the following vDSP_biquadm calls each coefficient moves
+    (1 - __interp_rate) of its remaining distance to the target per sample,
+    but never more than __interp_threshold per sample. Accelerate does not
+    document its exact law; this matches the previous JUCE port of this code.
  */
 extern void vDSP_biquadm_SetTargetsDouble(
                                           vDSP_biquadm_Setup _Nonnull                  __setup,
@@ -867,6 +914,12 @@ extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
                     Y[m], IY,
                     N);
     */
+
+
+extern void vDSP_biquadmD(vDSP_biquadm_SetupD _Nonnull       __Setup,
+    const double * _Nonnull * _Nonnull __X, vDSP_Stride __IX,
+    double       * _Nonnull * _Nonnull __Y, vDSP_Stride __IY,
+    vDSP_Length              __N);
 
 //Need test
 void bDSP_vthrsc(

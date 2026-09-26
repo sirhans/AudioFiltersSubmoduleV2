@@ -515,6 +515,32 @@ void bDSP_vasm(
     }
 }
 
+void bDSP_vasmD(
+                const double *A,
+                long  IA,
+                const double *B,
+                long  IB,
+                const double *C,
+                double       *D,
+                long  ID,
+               size_t  N){
+    // with constant strides the compiler vectorises this loop (NEON on ARM)
+    if (IA == 1 && IB == 1 && ID == 1){
+        const double c = C[0];
+        for(size_t n = 0; n<N; n++) D[n] = (A[n] + B[n]) * c;
+        return;
+    }
+    long ia = 0;
+    long ib = 0;
+    long id = 0;
+    for(size_t n = 0; n<N; n++){
+        D[id] = (A[ia] + B[ib]) * C[0];
+        ia += IA;
+        ib += IB;
+        id += ID;
+    }
+}
+
 void bDSP_vswsum(
                 const float *A,
                 long  IA,
@@ -837,6 +863,30 @@ void bDSP_vdpsp(
             for (n = 0; n < N; ++n)
                 C[n] = A[n];
     */
+    long ia = 0;
+    long ic = 0;
+    for(size_t n = 0; n<N; n++){
+        C[ic] = A[ia];
+        ia += IA;
+        ic += IC;
+    }
+}
+
+void bDSP_vspdp(
+                const float *A,
+                long   IA,
+                double       *C,
+                long   IC,
+                size_t   N){
+    // with constant strides the compiler vectorises these loops (NEON on ARM)
+    if (IA == 1 && IC == 1){
+        for(size_t n = 0; n<N; n++) C[n] = A[n];
+        return;
+    }
+    if (IA == 2 && IC == 1){
+        for(size_t n = 0; n<N; n++) C[n] = A[2*n];
+        return;
+    }
     long ia = 0;
     long ic = 0;
     for(size_t n = 0; n<N; n++){
@@ -1785,11 +1835,16 @@ bool bDSP_vacD(double* array1, double* array2, size_t length){
 }
 
         
-extern vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeffs,
-                                                              vDSP_Length numLevels,
-                                                              vDSP_Length numChannels){
-    vDSP_biquadm_Setup This = malloc(sizeof(vDSP_biquadm_SetupStruct));
-    
+// coefficients arrive at their targets once they are this close to them
+#define BM_BIQUADM_INTERP_TOLERANCE 1.0e-9
+// while interpolating, the coefficients are updated once per this many samples
+#define BM_BIQUADM_INTERP_BLOCK 16
+
+
+static void biquadmSetupInit(vDSP_biquadm_SetupStruct *This,
+                             const double *coeffs,
+                             size_t numLevels,
+                             size_t numChannels){
     This->numLevels = numLevels;
     This->numChannels = numChannels;
     
@@ -1805,18 +1860,49 @@ extern vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeff
     for(size_t i=0; i<numLevels*numChannels*4; i++)
         This->delays[i] = 0.0;
     
-    // copy the filter coefficients
+    // copy the filter coefficients; there is nothing to interpolate yet
     memcpy(This->coefficients, coeffs, sizeof(double)*numLevels*numChannels*5);
-    
+    memcpy(This->targets, coeffs, sizeof(double)*numLevels*numChannels*5);
+    This->interpolating = false;
+    This->interpRate = 0.0;
+    This->interpThreshold = 0.0;
+}
+
+
+static void biquadmSetupFree(vDSP_biquadm_SetupStruct *This){
+    free(This->activeLevels);
+    free(This->delays);
+    free(This->targets);
+    free(This->coefficients);
+}
+
+
+extern vDSP_biquadm_Setup vDSP_biquadm_CreateSetup(const double * _Nonnull coeffs,
+                                                              vDSP_Length numLevels,
+                                                              vDSP_Length numChannels){
+    vDSP_biquadm_Setup This = malloc(sizeof(vDSP_biquadm_SetupStruct));
+    biquadmSetupInit(This, coeffs, numLevels, numChannels);
+    return This;
+}
+
+
+extern vDSP_biquadm_SetupD vDSP_biquadm_CreateSetupD(const double * _Nonnull coeffs,
+                                                     vDSP_Length numLevels,
+                                                     vDSP_Length numChannels){
+    vDSP_biquadm_SetupD This = malloc(sizeof(vDSP_biquadm_SetupStructD));
+    biquadmSetupInit(&This->filter, coeffs, numLevels, numChannels);
     return This;
 }
 
 
 extern void vDSP_biquadm_DestroySetup(vDSP_biquadm_Setup _Nonnull __setup){
-    free(__setup->activeLevels);
-    free(__setup->delays);
-    free(__setup->targets);
-    free(__setup->coefficients);
+    biquadmSetupFree(__setup);
+    free(__setup);
+}
+
+
+extern void vDSP_biquadm_DestroySetupD(vDSP_biquadm_SetupD _Nonnull __setup){
+    biquadmSetupFree(&__setup->filter);
     free(__setup);
 }
 
@@ -1825,6 +1911,11 @@ extern void vDSP_biquadm_ResetState(vDSP_biquadm_Setup _Nonnull __setup){
     // set the delays to zero
     for(size_t i=0; i<__setup->numLevels*__setup->numChannels*4; i++)
         __setup->delays[i] = 0.0;
+}
+
+
+extern void vDSP_biquadm_ResetStateD(vDSP_biquadm_SetupD _Nonnull __setup){
+    vDSP_biquadm_ResetState(&__setup->filter);
 }
 
 
@@ -1841,8 +1932,10 @@ extern void vDSP_biquadm_SetCoefficientsDouble(vDSP_biquadm_Setup _Nonnull __set
     assert(__start_chn == 0);
     assert(__start_sec == 0);
     
-    // copy all the coefficients
+    // copy all the coefficients; this cancels any interpolation in progress
     memcpy(__setup->coefficients, __coeffs, sizeof(double)*__nsec*__nchn*5);
+    memcpy(__setup->targets, __coeffs, sizeof(double)*__nsec*__nchn*5);
+    __setup->interpolating = false;
 }
 
 
@@ -1855,18 +1948,19 @@ extern void vDSP_biquadm_SetTargetsDouble(vDSP_biquadm_Setup _Nonnull __setup,
                                           vDSP_Length __start_chn,
                                           vDSP_Length __nsec,
                                           vDSP_Length __nchn){
-    // we're not done implementing this yet. please don't call it.
-    assert(false);
-    
     // we force the user to update all the coefficients rather than just one
     // filter at a time. We can change this later if necessary.
     assert(__nchn == __setup->numChannels);
     assert(__nsec == __setup->numLevels);
     assert(__start_chn == 0);
     assert(__start_sec == 0);
+    assert(__interp_rate >= 0.0f && __interp_rate <= 1.0f);
     
-    // copy all the coefficient targets
+    // copy all the coefficient targets; vDSP_biquadm moves toward them
     memcpy(__setup->targets, __targets, sizeof(double)*__nsec*__nchn*5);
+    __setup->interpRate = __interp_rate;
+    __setup->interpThreshold = __interp_threshold;
+    __setup->interpolating = true;
 }
 
 
@@ -1880,65 +1974,251 @@ extern void vDSP_biquadm_SetActiveFilters(vDSP_biquadm_Setup _Nonnull __setup,
 }
 
 
-
-void biquadSingleChannel(const float *input, float *output, double *coefficients, double *delays, size_t numSamples){
-    // we wrote this function using standard c but then re-wrote it using arm
-    // neon intrinsics, leaving the standard c code in the comments.
+/*
+    Moves the coefficients toward their targets by as much as numSamples
+    samples of interpolation would. Stops interpolating once they arrive.
+ */
+static void biquadmInterpolate(vDSP_biquadm_Setup This, size_t numSamples){
+    double remainingFraction = pow(This->interpRate, (double)numSamples);
+    double maxStep = This->interpThreshold * (double)numSamples;
+    bool arrived = true;
     
+    for(size_t i=0; i<This->numLevels*This->numChannels*5; i++){
+        double step = (This->targets[i] - This->coefficients[i]) * (1.0 - remainingFraction);
+        if (step > maxStep) step = maxStep;
+        if (step < -maxStep) step = -maxStep;
+        This->coefficients[i] += step;
+        if (fabs(This->targets[i] - This->coefficients[i]) > BM_BIQUADM_INTERP_TOLERANCE)
+            arrived = false;
+    }
+    
+    if (arrived){
+        memcpy(This->coefficients, This->targets, sizeof(double)*This->numLevels*This->numChannels*5);
+        This->interpolating = false;
+    }
+}
+
+
+
+/*
+    Each biquad section computes, with coefficients {b0, b1, b2, a1, a2} and
+    delays {zb1, zb2, za1, za2}:
+
+        za0 = b0*zb0 + b1*zb1 + b2*zb2 - a2*za2 - a1*za1
+
+    The a1 term is added last so that only one operation per sample waits
+    for the previous output. With NEON, two channels are filtered at once,
+    one per lane; channels left over (or all of them, without NEON) use the
+    plain loops.
+ */
+#if defined(__aarch64__) && USE_NEON
+    #define BM_BIQUADM_NEON 1
+#else
+    #define BM_BIQUADM_NEON 0
+#endif
+
+
+static void biquadSingleChannel(const float *input, float *output, const double *coefficients, double *delays, size_t numSamples){
     double b0 = coefficients[0];
-//    double b1 = coefficients[1];
-//    double b2 = coefficients[2];
-//    double a1 = coefficients[3];
-//    double a2 = coefficients[4];
-    // arm neon SIMD version of the commented lines above
-    my_float64x2_t b12 = {coefficients[1],coefficients[2]};
-    my_float64x2_t a12 = {-coefficients[3],-coefficients[4]};
+    double b1 = coefficients[1];
+    double b2 = coefficients[2];
+    double a1 = coefficients[3];
+    double a2 = coefficients[4];
     
-    // init delays
-//    double zb1 = delays[0];
-//    double zb2 = delays[1];
-//    double za1 = delays[2];
-//    double za2 = delays[3];
-    // arm neon SIMD version of the commented lines above
-    my_float64x2_t zb12 = {delays[0], delays[1]};
-    my_float64x2_t za12 = {delays[2], delays[3]};
-
-    // process the filter
+    double zb1 = delays[0];
+    double zb2 = delays[1];
+    double za1 = delays[2];
+    double za2 = delays[3];
+    
     for (size_t n = 0; n < numSamples; n++){
         double zb0 = input[n];
-        
-//        za0 = + b0 * zb0
-//              + b1 * zb1
-//              + b2 * zb2
-//              - a1 * za1
-//              - a2 * za2;
-        // arm neon SIMD version of the commented lines above
-        my_float64x2_t acc = my_vdupq_n_f64(0.0); // acc = {0,0}
-        acc = my_vfmaq_f64(acc, b12, zb12); // acc[0] += b12[0] * zb12[0]; acc[1] += b12[1] * zb12[1];
-        acc = my_vfmaq_f64(acc, a12, za12); // acc[0] += a12[0] * ab12[0]; acc[1] += a12[1] * ab12[1];
-        double za0 = my_vaddvq_f64(acc) + (zb0 * b0); // za0 = acc[0] + acc[1] + (zb0 * b0);
-        
+        double za0 = b0*zb0 + b1*zb1 + b2*zb2 - a2*za2 - a1*za1;
         output[n] = (float)za0;
-        
-//        zb2 = zb1;
-//        zb1 = zb0;
-//        za2 = za1;
-//        za1 = za0;
-        // arm neon SIMD version of the commented lines above
-        zb12 = (my_float64x2_t){zb0, my_vgetq_lane_f64(zb12, 0)};
-        za12 = (my_float64x2_t){za0, my_vgetq_lane_f64(za12, 0)};
+        zb2 = zb1;
+        zb1 = zb0;
+        za2 = za1;
+        za1 = za0;
     }
     
     // save delay data for next time
-//    delays[0] = zb1;
-//    delays[1] = zb2;
-//    delays[2] = za1;
-//    delays[3] = za2;
-    // arm neon SIMD version of the commented lines above
-    delays[0] = my_vgetq_lane_f64(zb12,0);
-    delays[1] = my_vgetq_lane_f64(zb12,1);
-    delays[2] = my_vgetq_lane_f64(za12,0);
-    delays[3] = my_vgetq_lane_f64(za12,1);
+    delays[0] = zb1;
+    delays[1] = zb2;
+    delays[2] = za1;
+    delays[3] = za2;
+}
+
+
+
+static void biquadSingleChannelD(const double *input, double *output, const double *coefficients, double *delays, size_t numSamples){
+    double b0 = coefficients[0];
+    double b1 = coefficients[1];
+    double b2 = coefficients[2];
+    double a1 = coefficients[3];
+    double a2 = coefficients[4];
+    
+    double zb1 = delays[0];
+    double zb2 = delays[1];
+    double za1 = delays[2];
+    double za2 = delays[3];
+    
+    for (size_t n = 0; n < numSamples; n++){
+        double zb0 = input[n];
+        double za0 = b0*zb0 + b1*zb1 + b2*zb2 - a2*za2 - a1*za1;
+        output[n] = za0;
+        zb2 = zb1;
+        zb1 = zb0;
+        za2 = za1;
+        za1 = za0;
+    }
+    
+    // save delay data for next time
+    delays[0] = zb1;
+    delays[1] = zb2;
+    delays[2] = za1;
+    delays[3] = za2;
+}
+
+
+
+#if BM_BIQUADM_NEON
+static void biquadTwoChannels(const float *input0, const float *input1,
+                              float *output0, float *output1,
+                              const double *coefficients0, const double *coefficients1,
+                              double *delays0, double *delays1,
+                              size_t numSamples){
+    float64x2_t b0 = {coefficients0[0], coefficients1[0]};
+    float64x2_t b1 = {coefficients0[1], coefficients1[1]};
+    float64x2_t b2 = {coefficients0[2], coefficients1[2]};
+    float64x2_t a1 = {coefficients0[3], coefficients1[3]};
+    float64x2_t a2 = {coefficients0[4], coefficients1[4]};
+    
+    float64x2_t zb1 = {delays0[0], delays1[0]};
+    float64x2_t zb2 = {delays0[1], delays1[1]};
+    float64x2_t za1 = {delays0[2], delays1[2]};
+    float64x2_t za2 = {delays0[3], delays1[3]};
+    
+    for (size_t n = 0; n < numSamples; n++){
+        float64x2_t zb0 = {input0[n], input1[n]};
+        float64x2_t acc = vmulq_f64(b0, zb0);
+        acc = vfmaq_f64(acc, b1, zb1);
+        acc = vfmaq_f64(acc, b2, zb2);
+        acc = vfmsq_f64(acc, a2, za2);
+        float64x2_t za0 = vfmsq_f64(acc, a1, za1);
+        output0[n] = (float)vgetq_lane_f64(za0, 0);
+        output1[n] = (float)vgetq_lane_f64(za0, 1);
+        zb2 = zb1;
+        zb1 = zb0;
+        za2 = za1;
+        za1 = za0;
+    }
+    
+    // save delay data for next time
+    delays0[0] = vgetq_lane_f64(zb1, 0); delays1[0] = vgetq_lane_f64(zb1, 1);
+    delays0[1] = vgetq_lane_f64(zb2, 0); delays1[1] = vgetq_lane_f64(zb2, 1);
+    delays0[2] = vgetq_lane_f64(za1, 0); delays1[2] = vgetq_lane_f64(za1, 1);
+    delays0[3] = vgetq_lane_f64(za2, 0); delays1[3] = vgetq_lane_f64(za2, 1);
+}
+
+
+
+static void biquadTwoChannelsD(const double *input0, const double *input1,
+                               double *output0, double *output1,
+                               const double *coefficients0, const double *coefficients1,
+                               double *delays0, double *delays1,
+                               size_t numSamples){
+    float64x2_t b0 = {coefficients0[0], coefficients1[0]};
+    float64x2_t b1 = {coefficients0[1], coefficients1[1]};
+    float64x2_t b2 = {coefficients0[2], coefficients1[2]};
+    float64x2_t a1 = {coefficients0[3], coefficients1[3]};
+    float64x2_t a2 = {coefficients0[4], coefficients1[4]};
+    
+    float64x2_t zb1 = {delays0[0], delays1[0]};
+    float64x2_t zb2 = {delays0[1], delays1[1]};
+    float64x2_t za1 = {delays0[2], delays1[2]};
+    float64x2_t za2 = {delays0[3], delays1[3]};
+    
+    for (size_t n = 0; n < numSamples; n++){
+        float64x2_t zb0 = {input0[n], input1[n]};
+        float64x2_t acc = vmulq_f64(b0, zb0);
+        acc = vfmaq_f64(acc, b1, zb1);
+        acc = vfmaq_f64(acc, b2, zb2);
+        acc = vfmsq_f64(acc, a2, za2);
+        float64x2_t za0 = vfmsq_f64(acc, a1, za1);
+        output0[n] = vgetq_lane_f64(za0, 0);
+        output1[n] = vgetq_lane_f64(za0, 1);
+        zb2 = zb1;
+        zb1 = zb0;
+        za2 = za1;
+        za1 = za0;
+    }
+    
+    // save delay data for next time
+    delays0[0] = vgetq_lane_f64(zb1, 0); delays1[0] = vgetq_lane_f64(zb1, 1);
+    delays0[1] = vgetq_lane_f64(zb2, 0); delays1[1] = vgetq_lane_f64(zb2, 1);
+    delays0[2] = vgetq_lane_f64(za1, 0); delays1[2] = vgetq_lane_f64(za1, 1);
+    delays0[3] = vgetq_lane_f64(za2, 0); delays1[3] = vgetq_lane_f64(za2, 1);
+}
+#endif
+
+
+
+/*
+    Filters samples [offset, offset + numSamples) of every channel through
+    all the active levels, with the current coefficients.
+ */
+static void biquadmProcess(vDSP_biquadm_Setup This,
+                           const float * _Nonnull * _Nonnull X,
+                           float * _Nonnull * _Nonnull Y,
+                           size_t offset,
+                           size_t numSamples){
+    size_t cnl = 0;
+    
+#if BM_BIQUADM_NEON
+    // channels in pairs
+    for(; cnl + 1 < This->numChannels; cnl += 2){
+        const float *input0 = X[cnl] + offset, *input1 = X[cnl+1] + offset;
+        float *output0 = Y[cnl] + offset, *output1 = Y[cnl+1] + offset;
+        bool firstActiveLevel = true;
+        
+        for (size_t lvl=0; lvl < This->numLevels; lvl++){
+            if(!This->activeLevels[lvl]) continue;
+            double *coefficients = This->coefficients + lvl*This->numChannels*5 + cnl*5;
+            double *delays       = This->delays       + lvl*This->numChannels*4 + cnl*4;
+            // the first active level reads the input; later levels process in place
+            biquadTwoChannels(firstActiveLevel ? input0 : output0, firstActiveLevel ? input1 : output1,
+                              output0, output1,
+                              coefficients, coefficients + 5,
+                              delays, delays + 4, numSamples);
+            firstActiveLevel = false;
+        }
+        
+        // if none of the filters was active, copy input to output without filtering
+        if (firstActiveLevel){
+            if (output0 != input0) memmove(output0, input0, sizeof(float)*numSamples);
+            if (output1 != input1) memmove(output1, input1, sizeof(float)*numSamples);
+        }
+    }
+#endif
+    
+    // remaining channels one at a time
+    for(; cnl < This->numChannels; cnl++){
+        const float *input  = X[cnl] + offset;
+        float *output = Y[cnl] + offset;
+        bool firstActiveLevel = true;
+        
+        for (size_t lvl=0; lvl < This->numLevels; lvl++){
+            if(!This->activeLevels[lvl]) continue;
+            double *coefficients = This->coefficients + lvl*This->numChannels*5 + cnl*5;
+            double *delays       = This->delays       + lvl*This->numChannels*4 + cnl*4;
+            // the first active level reads the input; later levels process in place
+            biquadSingleChannel(firstActiveLevel ? input : output, output, coefficients, delays, numSamples);
+            firstActiveLevel = false;
+        }
+        
+        // if none of the filters was active, copy input to output without filtering
+        if (firstActiveLevel && output != input)
+            memmove(output, input, sizeof(float)*numSamples);
+    }
 }
 
 
@@ -1954,34 +2234,79 @@ extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
     assert(__IX == 1);
     assert(__IY == 1);
     
-    // for each channel
-    for(size_t cnl = 0; cnl < __Setup->numChannels; cnl++){
-        const float *input  = __X[cnl];
-        float *output = __Y[cnl];
+    size_t processed = 0;
+    
+    // while the coefficients are moving toward new targets, update them every few samples
+    while (__Setup->interpolating && processed < __N){
+        size_t blockSize = BM_MIN(__N - processed, BM_BIQUADM_INTERP_BLOCK);
+        biquadmInterpolate(__Setup, blockSize);
+        biquadmProcess(__Setup, __X, __Y, processed, blockSize);
+        processed += blockSize;
+    }
+    
+    // the rest of the buffer uses fixed coefficients
+    if (processed < __N)
+        biquadmProcess(__Setup, __X, __Y, processed, __N - processed);
+}
+
+
+
+/*  vDSP_biquadmD applies a multi-channel biquadm IIR filter created with
+    vDSP_biquadm_CreateSetupD, in double precision.
+ */
+extern void vDSP_biquadmD(vDSP_biquadm_SetupD _Nonnull       __Setup,
+    const double * _Nonnull * _Nonnull __X, vDSP_Stride __IX,
+    double       * _Nonnull * _Nonnull __Y, vDSP_Stride __IY,
+                          vDSP_Length              __N){
+    // force the strides to be 1
+    assert(__IX == 1);
+    assert(__IY == 1);
+    
+    vDSP_biquadm_SetupStruct *This = &__Setup->filter;
+    size_t cnl = 0;
+    
+#if BM_BIQUADM_NEON
+    // channels in pairs
+    for(; cnl + 1 < This->numChannels; cnl += 2){
+        const double *input0 = __X[cnl], *input1 = __X[cnl+1];
+        double *output0 = __Y[cnl], *output1 = __Y[cnl+1];
         bool firstActiveLevel = true;
         
-        // process each level of the filter
-        for (size_t lvl=0; lvl < __Setup->numLevels; lvl++){
-            // get simple pointers to the data we need to pass on to the biquad process function
-            double *coefficients = __Setup->coefficients + lvl*__Setup->numChannels*5 + cnl*5;
-            double *delays       = __Setup->delays       + lvl*__Setup->numChannels*4 + cnl*4;
-            
-            // if the filter on this level is active
-            if(__Setup->activeLevels[lvl]){
-                // if this is the first active level on this channel, process from input to output
-                if (firstActiveLevel) {
-                    biquadSingleChannel(input, output, coefficients, delays, __N);
-                    firstActiveLevel = false;
-                }
-                // if this is not the first active level, process output in place
-                else
-                    biquadSingleChannel(output, output, coefficients, delays, __N);
-            }
-            
-            // if none of the filters was active, copy input to output without filtering
-            if (firstActiveLevel)
-                memcpy(output, input, sizeof(float)*__N);
+        for (size_t lvl=0; lvl < This->numLevels; lvl++){
+            if(!This->activeLevels[lvl]) continue;
+            double *coefficients = This->coefficients + lvl*This->numChannels*5 + cnl*5;
+            double *delays       = This->delays       + lvl*This->numChannels*4 + cnl*4;
+            biquadTwoChannelsD(firstActiveLevel ? input0 : output0, firstActiveLevel ? input1 : output1,
+                               output0, output1,
+                               coefficients, coefficients + 5,
+                               delays, delays + 4, __N);
+            firstActiveLevel = false;
         }
+        
+        if (firstActiveLevel){
+            if (output0 != input0) memmove(output0, input0, sizeof(double)*__N);
+            if (output1 != input1) memmove(output1, input1, sizeof(double)*__N);
+        }
+    }
+#endif
+    
+    // remaining channels one at a time
+    for(; cnl < This->numChannels; cnl++){
+        const double *input  = __X[cnl];
+        double *output = __Y[cnl];
+        bool firstActiveLevel = true;
+        
+        for (size_t lvl=0; lvl < This->numLevels; lvl++){
+            if(!This->activeLevels[lvl]) continue;
+            double *coefficients = This->coefficients + lvl*This->numChannels*5 + cnl*5;
+            double *delays       = This->delays       + lvl*This->numChannels*4 + cnl*4;
+            biquadSingleChannelD(firstActiveLevel ? input : output, output, coefficients, delays, __N);
+            firstActiveLevel = false;
+        }
+        
+        // if none of the filters was active, copy input to output without filtering
+        if (firstActiveLevel && output != input)
+            memmove(output, input, sizeof(double)*__N);
     }
 }
 
