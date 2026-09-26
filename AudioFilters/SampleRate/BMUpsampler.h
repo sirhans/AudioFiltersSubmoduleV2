@@ -14,7 +14,9 @@ extern "C" {
 #define BMUpsampler_h
 
 
+#ifdef __APPLE__
 #include <MacTypes.h>
+#endif
 #include "BMIIRUpsampler2x.h"
 #include "BMMultiLevelBiquad.h"
 

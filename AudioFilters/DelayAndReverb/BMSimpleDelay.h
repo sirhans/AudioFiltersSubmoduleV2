@@ -16,7 +16,11 @@
 #define BMSimpleDelay_h
 
 #include <stdio.h>
+#ifdef __APPLE__
 #include "TPCircularBuffer+AudioBufferList.h"
+#else
+#include "TPCircularBuffer.h" // the AudioBufferList utilities need AudioToolbox
+#endif
 
 typedef struct BMSimpleDelayMono {
     TPCircularBuffer buffer;

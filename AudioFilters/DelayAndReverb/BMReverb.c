@@ -18,7 +18,9 @@
 #include "Constants.h"
 #include "../AudioFilter.h"
 #include "BMFastHadamard.h"
+#ifdef __APPLE__
 #include <mactypes.h>
+#endif
 #include "BMSorting.h"
 
 
