@@ -424,14 +424,28 @@ void bDSP_vpoly(
     /*for (n = 0; n < N; ++n)
         C[n] = sum(A[P-p] * B[n]**p, 0 <= p <= P);
      */
-//    size_t ia = 0;
+    // The powers of B by repeated multiplication, not powf (three calls a
+    // sample for a quadratic): the same sum in the same order, and the same
+    // result up to P = 2 (powf(x, 0) = 1, powf(x, 1) = x, powf(x, 2) = x * x).
+    if (IB == 1 && IC == 1 && P == 2){
+        const float a0 = A[0], a1 = A[1], a2 = A[2];
+        for (size_t n = 0; n < N; n++){
+            const float b = B[n];
+            float sum = a2;
+            sum += a1 * b;
+            sum += a0 * (b * b);
+            C[n] = sum;
+        }
+        return;
+    }
     size_t ib = 0;
     size_t ic = 0;
-    float sum;
     for (size_t n = 0; n < N; n++){
-        sum = 0;
+        float sum = 0;
+        float power = 1.0f;
         for(size_t p =0; p<=P;p++){
-            sum += A[P - p] * powf(B[ib],p);
+            sum += A[P - p] * power;
+            power *= B[ib];
         }
         C[ic] = sum;
         ib += IB;
