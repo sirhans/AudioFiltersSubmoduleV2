@@ -173,50 +173,67 @@ void BMAttackFilter_processBuffer(BMAttackFilter *This,
                                   float* output,
                                   size_t numSamples){
     
+    // The state in locals for the loop: output is a float pointer, so the
+    // compiler must assume it may point into *This and would reload every
+    // field after each store. The same arithmetic, in the same order.
+    float ic1 = This->ic1, ic2 = This->ic2;
+    float previousOutputValue = This->previousOutputValue;
+    float previousOutputGradient = This->previousOutputGradient;
+    bool attackMode = This->attackMode;
+    const float a1 = This->a1, a2 = This->a2, a3 = This->a3, gInv_2 = This->gInv_2;
+    
     for (size_t i=0; i<numSamples; i++){
         float x = input[i];
+        float y;
         
         // if we are in attack mode,
-        if (x > This->previousOutputValue){
+        if (x > previousOutputValue){
             
             // if this is the first sample in attack mode
-            if(!This->attackMode){
+            if(!attackMode){
                 // set the attack mode flag
-                This->attackMode = true;
+                attackMode = true;
                 // and update the state variables to get continuous gradient
-                This->ic1 = This->previousOutputGradient  *This->gInv_2;
+                ic1 = previousOutputGradient * gInv_2;
                 // and continuous output value
-                This->ic2 = This->previousOutputValue;
+                ic2 = previousOutputValue;
             }
             
             // process the state variable filter
-            float v3 = x - This->ic2;
-            float v1 = This->a1  *This->ic1 + This->a2 * v3;
-            float v2 = This->ic2 + This->a2  *This->ic1 + This->a3 * v3;
+            float v3 = x - ic2;
+            float v1 = a1 * ic1 + a2 * v3;
+            float v2 = ic2 + a2 * ic1 + a3 * v3;
             
             // update the state variables
-            This->ic1 = 2.0f * v1 - This->ic1;
-            This->ic2 = 2.0f * v2 - This->ic2;
+            ic1 = 2.0f * v1 - ic1;
+            ic2 = 2.0f * v2 - ic2;
             
             // output
-            output[i] = v2;
+            y = v2;
         }
         
         // if we are in release mode,
         else {
             // unset the attack mode flag
-            This->attackMode = false;
+            attackMode = false;
             
             // copy the input to the output
-            output[i] = x;
+            y = x;
             
             // and save the gradient so that we have it ready in case the next
             // sample we switch into attack mode
-            This->previousOutputGradient = x - This->previousOutputValue;
+            previousOutputGradient = x - previousOutputValue;
         }
         
-        This->previousOutputValue = output[i];
+        output[i] = y;
+        previousOutputValue = y;
     }
+    
+    This->ic1 = ic1;
+    This->ic2 = ic2;
+    This->previousOutputValue = previousOutputValue;
+    This->previousOutputGradient = previousOutputGradient;
+    This->attackMode = attackMode;
 }
 
 void BMAttackFilter_processBufferLP(BMAttackFilter *This,
@@ -309,46 +326,61 @@ void BMReleaseFilter_processBuffer(BMReleaseFilter *This,
                                    float* output,
                                    size_t numSamples){
     
+    // The state in locals for the loop (see BMAttackFilter_processBuffer).
+    float ic1 = This->ic1, ic2 = This->ic2;
+    float previousOutputValue = This->previousOutputValue;
+    bool attackMode = This->attackMode;
+    const float a1 = This->a1, a2 = This->a2, a3 = This->a3;
+    
     for (size_t i=0; i<numSamples; i++){
         float x = input[i];
+        float y;
         
         // if we are in attack mode,
-        if (x > This->previousOutputValue){
+        if (x > previousOutputValue){
             // set the attack mode flag
-            This->attackMode = true;
+            attackMode = true;
             // copy the input to the output
-            output[i] = x;
+            y = x;
         }
         
         // if we are in release mode,
         else {
             // if this is the first sample in release mode
-            if(This->attackMode){
+            if(attackMode){
                 // unset the attack mode flag
-                This->attackMode = false;
+                attackMode = false;
                 // set the gradient to zero
-                This->ic1 = 0.0f;
+                ic1 = 0.0f;
                 // set the second state variable to the previous output
                 // to keep the output function continuous
-                This->ic2 = This->previousOutputValue;
+                ic2 = previousOutputValue;
             }
             
             // process the state variable filter
-            float v3 = x - This->ic2;
-            float v1 = This->a1  *This->ic1 + This->a2 * v3;
-            float v2 = This->ic2 + This->a2  *This->ic1 + This->a3 * v3;
+            float v3 = x - ic2;
+            float v1 = a1 * ic1 + a2 * v3;
+            float v2 = ic2 + a2 * ic1 + a3 * v3;
             
             // update the state variables
-            This->ic1 = 2.0f * v1 - This->ic1;
-            This->ic2 = 2.0f * v2 - This->ic2;
+            ic1 = 2.0f * v1 - ic1;
+            ic2 = 2.0f * v2 - ic2;
             
             // output
-            output[i] = v2;
+            y = v2;
         }
         
-        This->previousOutputValue = output[i];
+        output[i] = y;
+        previousOutputValue = y;
     }
+    
+    This->ic1 = ic1;
+    This->ic2 = ic2;
+    This->previousOutputValue = previousOutputValue;
+    This->attackMode = attackMode;
 }
+
+
 
 void BMReleaseFilter_processBufferDynamic(BMReleaseFilter *This,
                                    const float* input,
@@ -552,7 +584,98 @@ void BMEnvelopeFollower_setReleaseTime(BMEnvelopeFollower *This, float releaseTi
 
 
 
+// All the stages in one pass, each sample through the release stages then the
+// attack stages, every stage's state in locals: the same arithmetic as the
+// stages one buffer pass at a time (BMReleaseFilter_processBuffer, then
+// BMAttackFilter_processBuffer), so the same result. One pass a stage waits
+// on that stage's recursion every sample; in one pass the stages of
+// neighbouring samples overlap.
+#define BMENV_FUSED_MAX_STAGES 4
+
+static void BMEnvelopeFollower_processBufferFused(BMEnvelopeFollower *This, const float* input, float* output, size_t numSamples){
+    const size_t nr = This->numReleaseStages, na = This->numAttackStages;
+    float rIc1[BMENV_FUSED_MAX_STAGES], rIc2[BMENV_FUSED_MAX_STAGES], rPrev[BMENV_FUSED_MAX_STAGES];
+    float rA1[BMENV_FUSED_MAX_STAGES], rA2[BMENV_FUSED_MAX_STAGES], rA3[BMENV_FUSED_MAX_STAGES];
+    bool rAttack[BMENV_FUSED_MAX_STAGES];
+    float aIc1[BMENV_FUSED_MAX_STAGES], aIc2[BMENV_FUSED_MAX_STAGES], aPrev[BMENV_FUSED_MAX_STAGES], aGrad[BMENV_FUSED_MAX_STAGES];
+    float aA1[BMENV_FUSED_MAX_STAGES], aA2[BMENV_FUSED_MAX_STAGES], aA3[BMENV_FUSED_MAX_STAGES], aGInv2[BMENV_FUSED_MAX_STAGES];
+    bool aAttack[BMENV_FUSED_MAX_STAGES];
+    for(size_t j=0; j<nr; j++){
+        const BMReleaseFilter *f = &This->releaseFilters[j];
+        rIc1[j] = f->ic1; rIc2[j] = f->ic2; rPrev[j] = f->previousOutputValue; rAttack[j] = f->attackMode;
+        rA1[j] = f->a1; rA2[j] = f->a2; rA3[j] = f->a3;
+    }
+    for(size_t j=0; j<na; j++){
+        const BMAttackFilter *f = &This->attackFilters[j];
+        aIc1[j] = f->ic1; aIc2[j] = f->ic2; aPrev[j] = f->previousOutputValue; aGrad[j] = f->previousOutputGradient;
+        aAttack[j] = f->attackMode; aA1[j] = f->a1; aA2[j] = f->a2; aA3[j] = f->a3; aGInv2[j] = f->gInv_2;
+    }
+    
+    for(size_t i=0; i<numSamples; i++){
+        float x = input[i];
+        for(size_t j=0; j<nr; j++){
+            float y;
+            if (x > rPrev[j]){
+                rAttack[j] = true;
+                y = x;
+            } else {
+                if (rAttack[j]){
+                    rAttack[j] = false;
+                    rIc1[j] = 0.0f;
+                    rIc2[j] = rPrev[j];
+                }
+                float v3 = x - rIc2[j];
+                float v1 = rA1[j] * rIc1[j] + rA2[j] * v3;
+                float v2 = rIc2[j] + rA2[j] * rIc1[j] + rA3[j] * v3;
+                rIc1[j] = 2.0f * v1 - rIc1[j];
+                rIc2[j] = 2.0f * v2 - rIc2[j];
+                y = v2;
+            }
+            rPrev[j] = y;
+            x = y;
+        }
+        for(size_t j=0; j<na; j++){
+            float y;
+            if (x > aPrev[j]){
+                if(!aAttack[j]){
+                    aAttack[j] = true;
+                    aIc1[j] = aGrad[j] * aGInv2[j];
+                    aIc2[j] = aPrev[j];
+                }
+                float v3 = x - aIc2[j];
+                float v1 = aA1[j] * aIc1[j] + aA2[j] * v3;
+                float v2 = aIc2[j] + aA2[j] * aIc1[j] + aA3[j] * v3;
+                aIc1[j] = 2.0f * v1 - aIc1[j];
+                aIc2[j] = 2.0f * v2 - aIc2[j];
+                y = v2;
+            } else {
+                aAttack[j] = false;
+                y = x;
+                aGrad[j] = x - aPrev[j];
+            }
+            aPrev[j] = y;
+            x = y;
+        }
+        output[i] = x;
+    }
+    
+    for(size_t j=0; j<nr; j++){
+        BMReleaseFilter *f = &This->releaseFilters[j];
+        f->ic1 = rIc1[j]; f->ic2 = rIc2[j]; f->previousOutputValue = rPrev[j]; f->attackMode = rAttack[j];
+    }
+    for(size_t j=0; j<na; j++){
+        BMAttackFilter *f = &This->attackFilters[j];
+        f->ic1 = aIc1[j]; f->ic2 = aIc2[j]; f->previousOutputValue = aPrev[j];
+        f->previousOutputGradient = aGrad[j]; f->attackMode = aAttack[j];
+    }
+}
+
 void BMEnvelopeFollower_processBuffer(BMEnvelopeFollower *This, const float* input, float* output, size_t numSamples){
+    
+    if(This->numReleaseStages <= BMENV_FUSED_MAX_STAGES && This->numAttackStages <= BMENV_FUSED_MAX_STAGES){
+        BMEnvelopeFollower_processBufferFused(This, input, output, numSamples);
+        return;
+    }
     
     // process all the release filters in series
     BMReleaseFilter_processBuffer(&This->releaseFilters[0], input, output, numSamples);
