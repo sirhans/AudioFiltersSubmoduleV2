@@ -1848,12 +1848,6 @@ bool bDSP_vacD(double* array1, double* array2, size_t length){
     return true;
 }
 
-        
-// coefficients arrive at their targets once they are this close to them
-#define BM_BIQUADM_INTERP_TOLERANCE 1.0e-9
-// while interpolating, the coefficients are updated once per this many samples
-#define BM_BIQUADM_INTERP_BLOCK 16
-
 
 static void biquadmSetupInit(vDSP_biquadm_SetupStruct *This,
                              const double *coeffs,
@@ -1864,6 +1858,8 @@ static void biquadmSetupInit(vDSP_biquadm_SetupStruct *This,
     
     This->coefficients = malloc(sizeof(double)*numLevels*numChannels*5);
     This->targets = malloc(sizeof(double)*numLevels*numChannels*5);
+    This->glide = malloc(sizeof(double)*numLevels*numChannels*5);
+    This->previous = malloc(sizeof(double)*numLevels*numChannels*5);
     This->delays = malloc(sizeof(double)*numLevels*numChannels*4);
     This->activeLevels = malloc(sizeof(bool)*numLevels);
     
@@ -1877,15 +1873,22 @@ static void biquadmSetupInit(vDSP_biquadm_SetupStruct *This,
     // copy the filter coefficients; there is nothing to interpolate yet
     memcpy(This->coefficients, coeffs, sizeof(double)*numLevels*numChannels*5);
     memcpy(This->targets, coeffs, sizeof(double)*numLevels*numChannels*5);
+    memcpy(This->glide, coeffs, sizeof(double)*numLevels*numChannels*5);
+    memcpy(This->previous, coeffs, sizeof(double)*numLevels*numChannels*5);
     This->interpolating = false;
     This->interpRate = 0.0;
     This->interpThreshold = 0.0;
+    This->onGlide = false;
+    This->glideSamples = 0;
+    This->handover = 0;
 }
 
 
 static void biquadmSetupFree(vDSP_biquadm_SetupStruct *This){
     free(This->activeLevels);
     free(This->delays);
+    free(This->previous);
+    free(This->glide);
     free(This->targets);
     free(This->coefficients);
 }
@@ -1925,6 +1928,8 @@ extern void vDSP_biquadm_ResetState(vDSP_biquadm_Setup _Nonnull __setup){
     // set the delays to zero
     for(size_t i=0; i<__setup->numLevels*__setup->numChannels*4; i++)
         __setup->delays[i] = 0.0;
+    // nothing from before is left to hand over
+    __setup->handover = 0;
 }
 
 
@@ -1946,10 +1951,14 @@ extern void vDSP_biquadm_SetCoefficientsDouble(vDSP_biquadm_Setup _Nonnull __set
     assert(__start_chn == 0);
     assert(__start_sec == 0);
     
-    // copy all the coefficients; this cancels any interpolation in progress
+    // copy all the coefficients; this cancels any interpolation in progress,
+    // and the next one starts from them (Accelerate's do the same)
     memcpy(__setup->coefficients, __coeffs, sizeof(double)*__nsec*__nchn*5);
     memcpy(__setup->targets, __coeffs, sizeof(double)*__nsec*__nchn*5);
+    memcpy(__setup->glide, __coeffs, sizeof(double)*__nsec*__nchn*5);
     __setup->interpolating = false;
+    __setup->onGlide = false;
+    __setup->handover = 0;
 }
 
 
@@ -1970,11 +1979,14 @@ extern void vDSP_biquadm_SetTargetsDouble(vDSP_biquadm_Setup _Nonnull __setup,
     assert(__start_sec == 0);
     assert(__interp_rate >= 0.0f && __interp_rate <= 1.0f);
     
-    // copy all the coefficient targets; vDSP_biquadm moves toward them
+    // copy all the coefficient targets; vDSP_biquadm glides toward them
+    // from where the last glide stopped (biquadmGlide)
     memcpy(__setup->targets, __targets, sizeof(double)*__nsec*__nchn*5);
     __setup->interpRate = __interp_rate;
     __setup->interpThreshold = __interp_threshold;
     __setup->interpolating = true;
+    __setup->glideSamples = 0;
+    __setup->handover = 0;
 }
 
 
@@ -1984,32 +1996,170 @@ extern void vDSP_biquadm_SetTargetsDouble(vDSP_biquadm_Setup _Nonnull __setup,
  */
 extern void vDSP_biquadm_SetActiveFilters(vDSP_biquadm_Setup _Nonnull __setup,
                                           const bool * _Nonnull __filter_states){
+    // a level switched on starts the glide again, from where each level's
+    // position is toward the targets (Accelerate's do: biquadmGlide)
+    bool switchedOn = false;
+    for(size_t i=0; i<__setup->numLevels; i++)
+        if (__filter_states[i] && !__setup->activeLevels[i]) switchedOn = true;
     memcpy(__setup->activeLevels, __filter_states, sizeof(bool)*__setup->numLevels);
+    if (switchedOn){
+        __setup->interpolating = true;
+        __setup->glideSamples = 0;
+        __setup->handover = 0;
+    }
 }
 
 
 /*
-    Moves the coefficients toward their targets by as much as numSamples
-    samples of interpolation would. Stops interpolating once they arrive.
+    The glide after vDSP_biquadm_SetTargetsDouble, as Accelerate's
+    vDSP_biquadm runs it (measured against it on macOS: the iOS / Android
+    parity tests of the TubeKaraoke app):
+
+    - the glide has a position of its own (glide), apart from the
+      coefficients the filter runs with outside a glide (coefficients);
+    - before each sample, if the largest distance from the position to the
+      targets, over the active levels' coefficients in every channel, is
+      under interp_threshold, the glide ends: the active levels take their
+      targets as their coefficients, and the position stays where it is
+      (interp_threshold is that distance, not a step size: targets that
+      close to start with are taken at once);
+    - otherwise the sample is filtered with the position, and the active
+      levels' position moves toward the targets by (1 - interp_rate) of the
+      distance left;
+    - a level switched off (SetActiveFilters) neither moves nor takes its
+      targets: it keeps its coefficients, its position and its delays; one
+      switched on starts the glide again (SetActiveFilters);
+    - the glide carries on from one call to the next until it ends; the
+      next SetTargetsDouble glides from the position where the last one
+      stopped (not from the coefficients taken then: a small step back, as
+      in Accelerate); SetCoefficientsDouble sets the position too;
+    - the switch to the targets is at once when the glide has filtered
+      samples; when it ends before its first one (targets within the
+      threshold to start with), the taps on samples from before the switch
+      keep the coefficients they were filtered with for two more samples
+      (biquadmHandover), as Accelerate's do.
+
+    Filters samples [0, numSamples) one at a time while the glide lasts and
+    returns how many it filtered (numSamples, or fewer if it ended: the rest
+    takes biquadmProcess with the coefficients).
  */
-static void biquadmInterpolate(vDSP_biquadm_Setup This, size_t numSamples){
-    double remainingFraction = pow(This->interpRate, (double)numSamples);
-    double maxStep = This->interpThreshold * (double)numSamples;
-    bool arrived = true;
+static size_t biquadmGlide(vDSP_biquadm_Setup This,
+                           const float * _Nonnull * _Nonnull X,
+                           float * _Nonnull * _Nonnull Y,
+                           size_t numSamples){
+    const double move = 1.0 - This->interpRate;
+    const double threshold = This->interpThreshold;
+    const size_t perLevel = This->numChannels*5;
+    size_t n = 0;
     
-    for(size_t i=0; i<This->numLevels*This->numChannels*5; i++){
-        double step = (This->targets[i] - This->coefficients[i]) * (1.0 - remainingFraction);
-        if (step > maxStep) step = maxStep;
-        if (step < -maxStep) step = -maxStep;
-        This->coefficients[i] += step;
-        if (fabs(This->targets[i] - This->coefficients[i]) > BM_BIQUADM_INTERP_TOLERANCE)
-            arrived = false;
+    while (This->interpolating && n < numSamples){
+        // close enough: the active levels take their targets from this sample on
+        double farthest = 0.0;
+        for (size_t lvl=0; lvl < This->numLevels; lvl++){
+            if(!This->activeLevels[lvl]) continue;
+            const double *g = This->glide   + lvl*perLevel;
+            const double *t = This->targets + lvl*perLevel;
+            for (size_t i=0; i < perLevel; i++){
+                double d = fabs(t[i] - g[i]);
+                if (d > farthest) farthest = d;
+            }
+        }
+        if (farthest < threshold){
+            // ended before its first sample: hand over from what the filter
+            // last ran with (biquadmHandover)
+            if (This->glideSamples == 0){
+                memcpy(This->previous, This->onGlide ? This->glide : This->coefficients,
+                       sizeof(double)*This->numLevels*perLevel);
+                This->handover = 2;
+            }
+            for (size_t lvl=0; lvl < This->numLevels; lvl++){
+                if(!This->activeLevels[lvl]) continue;
+                memcpy(This->coefficients + lvl*perLevel, This->targets + lvl*perLevel, sizeof(double)*perLevel);
+            }
+            This->interpolating = false;
+            This->onGlide = false;
+            break;
+        }
+        
+        // filter sample n with the glide's position, level after level,
+        // passing float between them as biquadmProcess does
+        for (size_t cnl=0; cnl < This->numChannels; cnl++){
+            float x = X[cnl][n];
+            for (size_t lvl=0; lvl < This->numLevels; lvl++){
+                if(!This->activeLevels[lvl]) continue;
+                const double *c = This->glide  + lvl*perLevel + cnl*5;
+                double *z       = This->delays + lvl*This->numChannels*4 + cnl*4;
+                // z: {zb1, zb2, za1, za2}
+                double za0 = c[0]*(double)x + c[1]*z[0] + c[2]*z[1] - c[4]*z[3] - c[3]*z[2];
+                z[1] = z[0];
+                z[0] = x;
+                z[3] = z[2];
+                z[2] = za0;
+                x = (float)za0;
+            }
+            Y[cnl][n] = x;
+        }
+        n++;
+        This->onGlide = true;
+        This->glideSamples++;
+        
+        // then the active levels' position moves toward their targets
+        for (size_t lvl=0; lvl < This->numLevels; lvl++){
+            if(!This->activeLevels[lvl]) continue;
+            double *g       = This->glide   + lvl*perLevel;
+            const double *t = This->targets + lvl*perLevel;
+            for (size_t i=0; i < perLevel; i++)
+                g[i] += (t[i] - g[i]) * move;
+        }
     }
     
-    if (arrived){
-        memcpy(This->coefficients, This->targets, sizeof(double)*This->numLevels*This->numChannels*5);
-        This->interpolating = false;
+    return n;
+}
+
+
+/*
+    The two samples after a glide that ended before its first sample
+    (biquadmGlide): Accelerate's taps on samples from before the switch keep
+    the coefficients they had (previous). The first sample takes the new b0
+    only; the second the new b0, b1 and a1, with the old b2 and a2 on the
+    samples from before. Filters samples [offset, offset + up to
+    This->handover) and returns how many.
+ */
+static size_t biquadmHandover(vDSP_biquadm_Setup This,
+                              const float * _Nonnull * _Nonnull X,
+                              float * _Nonnull * _Nonnull Y,
+                              size_t offset,
+                              size_t numSamples){
+    const size_t perLevel = This->numChannels*5;
+    size_t n = 0;
+    
+    while (This->handover > 0 && n < numSamples){
+        const bool first = This->handover == 2;
+        for (size_t cnl=0; cnl < This->numChannels; cnl++){
+            float x = X[cnl][offset + n];
+            for (size_t lvl=0; lvl < This->numLevels; lvl++){
+                if(!This->activeLevels[lvl]) continue;
+                const double *c = This->coefficients + lvl*perLevel + cnl*5;
+                const double *p = This->previous     + lvl*perLevel + cnl*5;
+                double *z       = This->delays       + lvl*This->numChannels*4 + cnl*4;
+                // z: {zb1, zb2, za1, za2}; b1 and a1 on the last sample, b2
+                // and a2 on the one before
+                double b1 = first ? p[1] : c[1];
+                double a1 = first ? p[3] : c[3];
+                double za0 = c[0]*(double)x + b1*z[0] + p[2]*z[1] - p[4]*z[3] - a1*z[2];
+                z[1] = z[0];
+                z[0] = x;
+                z[3] = z[2];
+                z[2] = za0;
+                x = (float)za0;
+            }
+            Y[cnl][offset + n] = x;
+        }
+        n++;
+        This->handover--;
     }
+    
+    return n;
 }
 
 
@@ -2249,15 +2399,15 @@ extern void vDSP_biquadm(vDSP_biquadm_Setup _Nonnull       __Setup,
     assert(__IY == 1);
     
     size_t processed = 0;
+
+    // while the coefficients glide toward new targets, one sample at a time
+    if (__Setup->interpolating)
+        processed = biquadmGlide(__Setup, __X, __Y, __N);
     
-    // while the coefficients are moving toward new targets, update them every few samples
-    while (__Setup->interpolating && processed < __N){
-        size_t blockSize = BM_MIN(__N - processed, BM_BIQUADM_INTERP_BLOCK);
-        biquadmInterpolate(__Setup, blockSize);
-        biquadmProcess(__Setup, __X, __Y, processed, blockSize);
-        processed += blockSize;
-    }
-    
+    // a glide that ended before its first sample hands over
+    if (__Setup->handover > 0 && processed < __N)
+        processed += biquadmHandover(__Setup, __X, __Y, processed, __N - processed);
+
     // the rest of the buffer uses fixed coefficients
     if (processed < __N)
         biquadmProcess(__Setup, __X, __Y, processed, __N - processed);

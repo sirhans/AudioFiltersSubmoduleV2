@@ -786,15 +786,30 @@ typedef long          vDSP_Stride;
 
 
 typedef struct vDSP_biquadm_SetupStruct {
+    // what the filter runs with outside a glide
     double * _Nonnull coefficients;
+    // vDSP_biquadm_SetTargetsDouble's, and the glide's own position toward
+    // them (what the filter runs with while it glides; see biquadmGlide)
     double * _Nonnull targets;
+    double * _Nonnull glide;
     double * _Nonnull delays;
     bool * _Nonnull activeLevels;
     size_t numChannels;
     size_t numLevels;
-    // set by vDSP_biquadm_SetTargetsDouble; cleared once the coefficients reach the targets
+    // set by vDSP_biquadm_SetTargetsDouble; cleared when the glide ends
+    // (vDSP_biquadm: once the position is within interpThreshold of the
+    // targets, the active levels take them, as Accelerate's do)
     bool interpolating;
     double interpRate, interpThreshold;
+    // the last sample was filtered with the glide's position (not with
+    // coefficients); samples the current glide has filtered so far
+    bool onGlide;
+    size_t glideSamples;
+    // a glide that ended before its first sample hands over as Accelerate's
+    // does: the taps on samples from before the switch keep the coefficients
+    // they had (previous) for this many more samples (2, 1, 0)
+    double * _Nonnull previous;
+    int handover;
 } vDSP_biquadm_SetupStruct;
 
 
